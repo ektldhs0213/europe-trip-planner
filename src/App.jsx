@@ -109,16 +109,57 @@ const BULK_CATEGORY_MAP = {
 
 const CITY_TONES = ['terracotta', 'ocean', 'sun', 'rose', 'cobalt', 'aurora', 'berry']
 const COUNTRY_OPTIONS = [
-  { name: 'Portugal', flag: '🇵🇹' },
-  { name: 'Spain', flag: '🇪🇸' },
-  { name: 'Finland', flag: '🇫🇮' },
-  { name: 'France', flag: '🇫🇷' },
-  { name: 'Italy', flag: '🇮🇹' },
-  { name: 'United Kingdom', flag: '🇬🇧' },
-  { name: 'Germany', flag: '🇩🇪' },
-  { name: 'Austria', flag: '🇦🇹' },
-  { name: 'Switzerland', flag: '🇨🇭' },
-  { name: 'Czechia', flag: '🇨🇿' },
+  { name: 'Albania', ko: '알바니아', flag: '🇦🇱' },
+  { name: 'Andorra', ko: '안도라', flag: '🇦🇩' },
+  { name: 'Armenia', ko: '아르메니아', flag: '🇦🇲' },
+  { name: 'Austria', ko: '오스트리아', flag: '🇦🇹' },
+  { name: 'Azerbaijan', ko: '아제르바이잔', flag: '🇦🇿' },
+  { name: 'Belarus', ko: '벨라루스', flag: '🇧🇾' },
+  { name: 'Belgium', ko: '벨기에', flag: '🇧🇪' },
+  { name: 'Bosnia and Herzegovina', ko: '보스니아 헤르체고비나', flag: '🇧🇦' },
+  { name: 'Bulgaria', ko: '불가리아', flag: '🇧🇬' },
+  { name: 'Croatia', ko: '크로아티아', flag: '🇭🇷' },
+  { name: 'Cyprus', ko: '키프로스', flag: '🇨🇾' },
+  { name: 'Czechia', ko: '체코', flag: '🇨🇿' },
+  { name: 'Denmark', ko: '덴마크', flag: '🇩🇰' },
+  { name: 'Estonia', ko: '에스토니아', flag: '🇪🇪' },
+  { name: 'Finland', ko: '핀란드', flag: '🇫🇮' },
+  { name: 'France', ko: '프랑스', flag: '🇫🇷' },
+  { name: 'Georgia', ko: '조지아', flag: '🇬🇪' },
+  { name: 'Germany', ko: '독일', flag: '🇩🇪' },
+  { name: 'Greece', ko: '그리스', flag: '🇬🇷' },
+  { name: 'Hungary', ko: '헝가리', flag: '🇭🇺' },
+  { name: 'Iceland', ko: '아이슬란드', flag: '🇮🇸' },
+  { name: 'Ireland', ko: '아일랜드', flag: '🇮🇪' },
+  { name: 'Italy', ko: '이탈리아', flag: '🇮🇹' },
+  { name: 'Kazakhstan', ko: '카자흐스탄', flag: '🇰🇿' },
+  { name: 'Kosovo', ko: '코소보', flag: '🇽🇰' },
+  { name: 'Latvia', ko: '라트비아', flag: '🇱🇻' },
+  { name: 'Liechtenstein', ko: '리히텐슈타인', flag: '🇱🇮' },
+  { name: 'Lithuania', ko: '리투아니아', flag: '🇱🇹' },
+  { name: 'Luxembourg', ko: '룩셈부르크', flag: '🇱🇺' },
+  { name: 'Malta', ko: '몰타', flag: '🇲🇹' },
+  { name: 'Moldova', ko: '몰도바', flag: '🇲🇩' },
+  { name: 'Monaco', ko: '모나코', flag: '🇲🇨' },
+  { name: 'Montenegro', ko: '몬테네그로', flag: '🇲🇪' },
+  { name: 'Netherlands', ko: '네덜란드', flag: '🇳🇱' },
+  { name: 'North Macedonia', ko: '북마케도니아', flag: '🇲🇰' },
+  { name: 'Norway', ko: '노르웨이', flag: '🇳🇴' },
+  { name: 'Poland', ko: '폴란드', flag: '🇵🇱' },
+  { name: 'Portugal', ko: '포르투갈', flag: '🇵🇹' },
+  { name: 'Romania', ko: '루마니아', flag: '🇷🇴' },
+  { name: 'Russia', ko: '러시아', flag: '🇷🇺' },
+  { name: 'San Marino', ko: '산마리노', flag: '🇸🇲' },
+  { name: 'Serbia', ko: '세르비아', flag: '🇷🇸' },
+  { name: 'Slovakia', ko: '슬로바키아', flag: '🇸🇰' },
+  { name: 'Slovenia', ko: '슬로베니아', flag: '🇸🇮' },
+  { name: 'Spain', ko: '스페인', flag: '🇪🇸' },
+  { name: 'Sweden', ko: '스웨덴', flag: '🇸🇪' },
+  { name: 'Switzerland', ko: '스위스', flag: '🇨🇭' },
+  { name: 'Türkiye', ko: '튀르키예', flag: '🇹🇷' },
+  { name: 'Ukraine', ko: '우크라이나', flag: '🇺🇦' },
+  { name: 'United Kingdom', ko: '영국', flag: '🇬🇧' },
+  { name: 'Vatican City', ko: '바티칸', flag: '🇻🇦' },
 ]
 
 const DEFAULT_PREP_ITEMS = [
@@ -556,12 +597,14 @@ function BulkPlaceImport({ cities, places, onClose, onImport }) {
 function CityEditor({ onClose, onSave }) {
   const [form, setForm] = useState({ country: 'Portugal', name: '', ko: '', startDate: '', endDate: '' })
   const update = (field, value) => setForm(current => ({ ...current, [field]: value }))
+  const selectedCountry = COUNTRY_OPTIONS.find(country => country.name === form.country)
   const validDates = form.startDate && form.endDate && form.endDate >= form.startDate
   const submit = (event) => {
     event.preventDefault()
     const values = Object.fromEntries(new FormData(event.currentTarget))
     const datesAreValid = values.startDate && values.endDate && values.endDate >= values.startDate
-    if (values.name.trim() && datesAreValid) onSave(values)
+    const countryIsValid = COUNTRY_OPTIONS.some(country => country.name === values.country)
+    if (values.name.trim() && datesAreValid && countryIsValid) onSave(values)
   }
 
   return (
@@ -569,14 +612,15 @@ function CityEditor({ onClose, onSave }) {
       <form className="place-editor city-editor" onSubmit={submit}>
         <header><div><span className="eyebrow">NEW DESTINATION</span><h2>도시 추가</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header>
         <div className="form-grid">
-          <label className="full"><span>국가 <em>*</em></span><select name="country" value={form.country} onChange={event => update('country', event.target.value)}>{COUNTRY_OPTIONS.map(country => <option key={country.name} value={country.name}>{country.flag} {country.name}</option>)}</select></label>
+          <label className="full"><span>국가 검색 <em>*</em></span><input name="country" list="europe-country-options" value={form.country} onChange={event => update('country', event.target.value)} placeholder="예: France 또는 프랑스" autoComplete="off" required /><datalist id="europe-country-options">{COUNTRY_OPTIONS.map(country => <option key={country.name} value={country.name} label={`${country.flag} ${country.ko}`} />)}</datalist></label>
           <label><span>도시명 <em>*</em></span><input name="name" autoFocus value={form.name} onChange={event => update('name', event.target.value)} placeholder="예: Paris" required /></label>
           <label><span>한글명</span><input name="ko" value={form.ko} onChange={event => update('ko', event.target.value)} placeholder="예: 파리" /></label>
           <label><span>도착일 <em>*</em></span><input name="startDate" type="date" value={form.startDate} onChange={event => update('startDate', event.target.value)} required /></label>
           <label><span>출발일 <em>*</em></span><input name="endDate" type="date" min={form.startDate} value={form.endDate} onChange={event => update('endDate', event.target.value)} required /></label>
           {form.startDate && form.endDate && !validDates && <p className="form-error full">출발일은 도착일보다 빠를 수 없어요.</p>}
+          {form.country && !selectedCountry && <p className="form-error full">검색 결과에서 유럽 국가를 선택해 주세요.</p>}
         </div>
-        <footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">도시 저장</button></footer>
+        <footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit" disabled={!selectedCountry || !validDates || !form.name.trim()}>도시 저장</button></footer>
       </form>
     </div>
   )
