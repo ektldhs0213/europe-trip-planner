@@ -77,18 +77,42 @@ const INITIAL_TICKETS = [
 ]
 
 const INITIAL_EVENTS = [
-  { id: 'event-flight-in', date: '09.02', day: '수', city: 'Lisbon', time: '12:45', end: '20:15', title: '인천 → 리스본', desc: 'ICN · EK323 / EK193 · LIS', type: 'transport', status: '발권 완료' },
-  { id: 'event-belem', date: '09.03', day: '목', city: 'Lisbon', time: '10:00', end: '12:30', title: '벨렝 지구 산책', desc: '제로니무스 수도원 · 에그타르트', type: 'pin', status: '일정 예정' },
-  { id: 'event-porto-train', date: '09.05', day: '토', city: 'Porto', time: '14:09', end: '16:48', title: 'Lisboa Oriente → Porto', desc: 'Alfa Pendular · Coach 4 · Seat 12A', type: 'transport', status: '예약 완료' },
-  { id: 'event-alhambra', date: '09.12', day: '토', city: 'Granada', time: '09:00', end: '12:30', title: 'Alhambra Nasrid Palaces', desc: '입장 30분 전 도착 · 여권 필수', type: 'tour', status: '티켓 저장됨' },
-  { id: 'event-gaudi', date: '09.17', day: '목', city: 'Barcelona', time: '13:30', end: '17:30', title: '가우디 건축 오후', desc: 'Casa Milà → Casa Batlló', type: 'pin', status: '예약 완료' },
-  { id: 'event-flight-out', date: '10.08', day: '목', city: 'Helsinki', time: '17:30', end: '—', title: 'Helsinki → Seoul', desc: 'HEL · AY041 · ICN', type: 'transport', status: '발권 완료' },
+  { id: 'event-flight-in', date: '09.02', day: '수', city: 'Lisbon', time: '12:45', end: '20:15', title: '인천 → 리스본', desc: 'ICN · EK323 / EK193 · LIS', type: 'transport', status: '예매 완료' },
+  { id: 'event-belem', date: '09.03', day: '목', city: 'Lisbon', time: '10:00', end: '12:30', title: '벨렝 지구 산책', desc: '제로니무스 수도원 · 에그타르트', type: 'pin', status: '예매 불필요' },
+  { id: 'event-porto-train', date: '09.05', day: '토', city: 'Porto', time: '14:09', end: '16:48', title: 'Lisboa Oriente → Porto', desc: 'Alfa Pendular · Coach 4 · Seat 12A', type: 'transport', status: '예매 완료' },
+  { id: 'event-alhambra', date: '09.12', day: '토', city: 'Granada', time: '09:00', end: '12:30', title: 'Alhambra Nasrid Palaces', desc: '입장 30분 전 도착 · 여권 필수', type: 'tour', status: '예매 완료' },
+  { id: 'event-gaudi', date: '09.17', day: '목', city: 'Barcelona', time: '13:30', end: '17:30', title: '가우디 건축 오후', desc: 'Casa Milà → Casa Batlló', type: 'pin', status: '예매 완료' },
+  { id: 'event-flight-out', date: '10.08', day: '목', city: 'Helsinki', time: '17:30', end: '—', title: 'Helsinki → Seoul', desc: 'HEL · AY041 · ICN', type: 'transport', status: '예매 완료' },
 ]
+
+const TRIP_YEAR = 2026
+const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+function normalizeScheduleStatus(status) {
+  return /완료|저장|발권/.test(String(status || '')) ? '예매 완료' : '예매 불필요'
+}
+
+function scheduleDateParts(value) {
+  const match = String(value || '').match(/^(?:(\d{4})\D+)?(\d{1,2})\D+(\d{1,2})$/)
+  if (!match) return null
+  const year = Number(match[1] || TRIP_YEAR)
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null
+  return {
+    input: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    display: `${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`,
+    day: KOREAN_DAYS[date.getDay()],
+  }
+}
 
 function normalizeEvents(items) {
   return items.map((event, index) => ({
     ...event,
     id: event.id || `event-${index}-${event.date}`,
+    day: scheduleDateParts(event.date)?.day || event.day || '',
+    status: normalizeScheduleStatus(event.status),
     type: event.type === 'plane' || event.type === 'train'
       ? 'transport'
       : event.type === 'ticket' ? 'tour' : event.type,
@@ -428,6 +452,7 @@ function eventSortKey(event, originalIndex) {
 function Schedule({ events, setEvents, notify }) {
   const [filter, setFilter] = useState('all')
   const [editor, setEditor] = useState(null)
+  const [expandedDates, setExpandedDates] = useState(() => new Set())
   const visible = useMemo(() => events
     .map((event, originalIndex) => ({ event, sortKey: eventSortKey(event, originalIndex) }))
     .filter(({ event }) => filter === 'all' || event.type === filter)
@@ -437,6 +462,13 @@ function Schedule({ events, setEvents, notify }) {
       || a.sortKey[2] - b.sortKey[2]
     ))
     .map(({ event }) => event), [events, filter])
+  const dateGroups = useMemo(() => visible.reduce((groups, event) => {
+    const key = event.date || '날짜 미정'
+    const group = groups.find(item => item.date === key)
+    if (group) group.events.push(event)
+    else groups.push({ date: key, day: scheduleDateParts(event.date)?.day || event.day, events: [event] })
+    return groups
+  }, []), [visible])
 
   const saveEvent = (form) => {
     if (editor?.id) {
@@ -449,20 +481,33 @@ function Schedule({ events, setEvents, notify }) {
     setEditor(null)
   }
 
+  const toggleDate = (date) => setExpandedDates(current => {
+    const next = new Set(current)
+    if (next.has(date)) next.delete(date)
+    else next.add(date)
+    return next
+  })
+
   return (
     <div className="page">
-      <SectionHead eyebrow="ITINERARY" title="전체 일정" description="도시, 날짜, 시간, 제목, 설명과 상태 문구를 모두 직접 수정할 수 있어요." action={<button className="primary-button" onClick={() => setEditor({})}><Icon name="plus" size={18} /> 일정 추가</button>} />
+      <SectionHead eyebrow="ITINERARY" title="전체 일정" description="날짜별로 일정을 펼쳐 보고 모든 내용을 직접 수정할 수 있어요." action={<button className="primary-button" onClick={() => setEditor({})}><Icon name="plus" size={18} /> 일정 추가</button>} />
       <div className="filter-bar schedule-filters">
         {[['all','전체'],['transport','항공 · 교통'],['tour','투어'],['pin','방문']].map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}
       </div>
       <div className="schedule-list">
-        {visible.map((event, index) => (
-          <article className="schedule-row" key={event.id}>
-            <div className="schedule-date"><strong>{event.date}</strong><span>{event.day}요일</span></div>
-            <div className="timeline-mark"><span className={event.type}><Icon name={event.type} size={18} /></span>{index < visible.length - 1 && <i />}</div>
-            <div className="schedule-time"><strong>{event.time}</strong><span>{event.end}</span></div>
-            <div className="schedule-card"><div><span className="event-city">{event.city}</span><h3>{event.title}</h3><p>{event.desc}</p></div><div className="schedule-actions"><span className={`status-chip ${event.status.includes('완료') || event.status.includes('저장') ? 'reserved' : ''}`}>{event.status}</span><button aria-label={`${event.title} 수정`} onClick={() => setEditor(event)}><Icon name="edit" size={16} /></button></div></div>
-          </article>
+        {dateGroups.map(group => (
+          <details className="schedule-day-group" key={group.date} open={expandedDates.has(group.date)}>
+            <summary onClick={event => { event.preventDefault(); toggleDate(group.date) }}><span><strong>{group.date}</strong><small>{group.day}요일</small></span><span>{group.events.length}개 일정 <Icon name="chevron" size={16} /></span></summary>
+            <div className="schedule-day-events">
+              {group.events.map((event, index) => (
+                <article className="schedule-row" key={event.id}>
+                  <div className="timeline-mark"><span className={event.type}><Icon name={event.type} size={18} /></span>{index < group.events.length - 1 && <i />}</div>
+                  <div className="schedule-time"><strong>{event.time}</strong><span>{event.end}</span></div>
+                  <div className="schedule-card"><div><span className="event-city">{event.city}</span><h3>{event.title}</h3><p>{event.desc}</p></div><div className="schedule-actions"><span className={`status-chip ${event.status === '예매 완료' ? 'reserved' : ''}`}>{event.status}</span><button aria-label={`${event.title} 수정`} onClick={() => setEditor(event)}><Icon name="edit" size={16} /></button></div></div>
+                </article>
+              ))}
+            </div>
+          </details>
         ))}
       </div>
       {editor && <ScheduleEditor event={editor} onClose={() => setEditor(null)} onSave={saveEvent} />}
@@ -471,23 +516,27 @@ function Schedule({ events, setEvents, notify }) {
 }
 
 function ScheduleEditor({ event, onClose, onSave }) {
+  const initialDate = scheduleDateParts(event.date)
   const [form, setForm] = useState({
-    date: event.date || '',
-    day: event.day || '월',
+    date: initialDate?.input || '',
+    day: initialDate?.day || event.day || '',
     city: event.city || '',
     time: event.time || '',
     end: event.end || '',
     title: event.title || '',
     desc: event.desc || '',
     type: event.type || 'pin',
-    status: event.status || '일정 예정',
+    status: normalizeScheduleStatus(event.status),
   })
-  const update = (field, value) => setForm(current => ({ ...current, [field]: value }))
+  const update = (field, value) => setForm(current => field === 'date'
+    ? { ...current, date: value, day: scheduleDateParts(value)?.day || '' }
+    : { ...current, [field]: value })
   const submit = (submitEvent) => {
     submitEvent.preventDefault()
-    if (form.title.trim() && form.date.trim()) onSave(form)
+    const date = scheduleDateParts(form.date)
+    if (form.title.trim() && date) onSave({ ...form, date: date.display, day: date.day })
   }
-  return <div className="modal-backdrop" onMouseDown={mouseEvent => mouseEvent.target === mouseEvent.currentTarget && onClose()}><form className="place-editor schedule-editor" onSubmit={submit}><header><div><span className="eyebrow">ITINERARY DETAILS</span><h2>{event.id ? '일정 수정' : '새 일정 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label><span>날짜 <em>*</em></span><input autoFocus value={form.date} onChange={changeEvent => update('date', changeEvent.target.value)} placeholder="09.02" maxLength="5" required /></label><label><span>요일</span><select value={form.day} onChange={changeEvent => update('day', changeEvent.target.value)}>{['월','화','수','목','금','토','일'].map(day => <option key={day}>{day}</option>)}</select></label><label><span>시작 시간</span><input value={form.time} onChange={changeEvent => update('time', changeEvent.target.value)} placeholder="09:00" /></label><label><span>종료 시간</span><input value={form.end} onChange={changeEvent => update('end', changeEvent.target.value)} placeholder="12:30 또는 —" /></label><label><span>도시</span><input value={form.city} onChange={changeEvent => update('city', changeEvent.target.value)} placeholder="Barcelona" /></label><label><span>일정 종류</span><select value={form.type} onChange={changeEvent => update('type', changeEvent.target.value)}><option value="transport">항공 · 교통</option><option value="tour">투어</option><option value="pin">방문</option></select></label><label className="full"><span>제목 <em>*</em></span><input value={form.title} onChange={changeEvent => update('title', changeEvent.target.value)} placeholder="일정 제목" required /></label><label className="full"><span>설명</span><textarea value={form.desc} onChange={changeEvent => update('desc', changeEvent.target.value)} placeholder="장소, 좌석, 준비물 등" rows="3" /></label><label className="full"><span>상태 문구</span><input value={form.status} onChange={changeEvent => update('status', changeEvent.target.value)} placeholder="예: 예약 완료" /></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">{event.id ? '변경사항 저장' : '일정 저장'}</button></footer></form></div>
+  return <div className="modal-backdrop" onMouseDown={mouseEvent => mouseEvent.target === mouseEvent.currentTarget && onClose()}><form className="place-editor schedule-editor" onSubmit={submit}><header><div><span className="eyebrow">ITINERARY DETAILS</span><h2>{event.id ? '일정 수정' : '새 일정 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label><span>날짜 <em>*</em></span><input autoFocus type="date" value={form.date} onChange={changeEvent => update('date', changeEvent.target.value)} required /></label><label><span>요일</span><input value={form.day ? `${form.day}요일` : ''} placeholder="날짜를 선택하면 자동 표시" readOnly /></label><label><span>시작 시간</span><input value={form.time} onChange={changeEvent => update('time', changeEvent.target.value)} placeholder="09:00" /></label><label><span>종료 시간</span><input value={form.end} onChange={changeEvent => update('end', changeEvent.target.value)} placeholder="12:30 또는 —" /></label><label><span>도시</span><input value={form.city} onChange={changeEvent => update('city', changeEvent.target.value)} placeholder="Barcelona" /></label><label><span>일정 종류</span><select value={form.type} onChange={changeEvent => update('type', changeEvent.target.value)}><option value="transport">항공 · 교통</option><option value="tour">투어</option><option value="pin">방문</option></select></label><label className="full"><span>제목 <em>*</em></span><input value={form.title} onChange={changeEvent => update('title', changeEvent.target.value)} placeholder="일정 제목" required /></label><label className="full"><span>설명</span><textarea value={form.desc} onChange={changeEvent => update('desc', changeEvent.target.value)} placeholder="장소, 좌석, 준비물 등" rows="3" /></label><label className="full"><span>상태</span><select value={form.status} onChange={changeEvent => update('status', changeEvent.target.value)}><option value="예매 완료">예매 완료</option><option value="예매 불필요">예매 불필요</option></select></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">{event.id ? '변경사항 저장' : '일정 저장'}</button></footer></form></div>
 }
 
 function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
