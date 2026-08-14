@@ -17,6 +17,8 @@ const iconPaths = {
   plane: ['M22 2 9.5 14.5', 'm22 2-8 20-4.5-7.5L2 10Z'],
   train: ['M6 17h12', 'M8 21l2-4', 'M16 21l-2-4', 'M8 3h8a3 3 0 0 1 3 3v11H5V6a3 3 0 0 1 3-3Z', 'M8 7h8', 'M8 13h.01', 'M16 13h.01'],
   ticket: ['M2 9a3 3 0 0 0 0 6v4h20v-4a3 3 0 0 0 0-6V5H2v4Z', 'M13 5v2', 'M13 11v2', 'M13 17v2'],
+  transport: ['M5 17h14', 'M7 20l2-3', 'M17 20l-2-3', 'M6 4h12a2 2 0 0 1 2 2v11H4V6a2 2 0 0 1 2-2Z', 'M4 10h16', 'M8 14h.01', 'M16 14h.01'],
+  tour: ['m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z', 'M9 3v15', 'M15 6v15'],
   clock: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', 'M12 6v6l4 2'],
   map: ['m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z', 'M9 3v15', 'M15 6v15'],
   external: ['M14 3h7v7', 'm10 11 11-11', 'M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5'],
@@ -75,13 +77,23 @@ const INITIAL_TICKETS = [
 ]
 
 const INITIAL_EVENTS = [
-  { id: 'event-flight-in', date: '09.02', day: '수', city: 'Lisbon', time: '12:45', end: '20:15', title: '인천 → 리스본', desc: 'ICN · EK323 / EK193 · LIS', type: 'plane', status: '발권 완료' },
+  { id: 'event-flight-in', date: '09.02', day: '수', city: 'Lisbon', time: '12:45', end: '20:15', title: '인천 → 리스본', desc: 'ICN · EK323 / EK193 · LIS', type: 'transport', status: '발권 완료' },
   { id: 'event-belem', date: '09.03', day: '목', city: 'Lisbon', time: '10:00', end: '12:30', title: '벨렝 지구 산책', desc: '제로니무스 수도원 · 에그타르트', type: 'pin', status: '일정 예정' },
-  { id: 'event-porto-train', date: '09.05', day: '토', city: 'Porto', time: '14:09', end: '16:48', title: 'Lisboa Oriente → Porto', desc: 'Alfa Pendular · Coach 4 · Seat 12A', type: 'train', status: '예약 완료' },
-  { id: 'event-alhambra', date: '09.12', day: '토', city: 'Granada', time: '09:00', end: '12:30', title: 'Alhambra Nasrid Palaces', desc: '입장 30분 전 도착 · 여권 필수', type: 'ticket', status: '티켓 저장됨' },
+  { id: 'event-porto-train', date: '09.05', day: '토', city: 'Porto', time: '14:09', end: '16:48', title: 'Lisboa Oriente → Porto', desc: 'Alfa Pendular · Coach 4 · Seat 12A', type: 'transport', status: '예약 완료' },
+  { id: 'event-alhambra', date: '09.12', day: '토', city: 'Granada', time: '09:00', end: '12:30', title: 'Alhambra Nasrid Palaces', desc: '입장 30분 전 도착 · 여권 필수', type: 'tour', status: '티켓 저장됨' },
   { id: 'event-gaudi', date: '09.17', day: '목', city: 'Barcelona', time: '13:30', end: '17:30', title: '가우디 건축 오후', desc: 'Casa Milà → Casa Batlló', type: 'pin', status: '예약 완료' },
-  { id: 'event-flight-out', date: '10.08', day: '목', city: 'Helsinki', time: '17:30', end: '—', title: 'Helsinki → Seoul', desc: 'HEL · AY041 · ICN', type: 'plane', status: '발권 완료' },
+  { id: 'event-flight-out', date: '10.08', day: '목', city: 'Helsinki', time: '17:30', end: '—', title: 'Helsinki → Seoul', desc: 'HEL · AY041 · ICN', type: 'transport', status: '발권 완료' },
 ]
+
+function normalizeEvents(items) {
+  return items.map((event, index) => ({
+    ...event,
+    id: event.id || `event-${index}-${event.date}`,
+    type: event.type === 'plane' || event.type === 'train'
+      ? 'transport'
+      : event.type === 'ticket' ? 'tour' : event.type,
+  }))
+}
 
 const categoryLabels = {
   all: '전체', attraction: '관광지', restaurant: '맛집', cafe: '카페', bar: 'Bar', other: '기타',
@@ -146,7 +158,7 @@ function App() {
     category: place.category === 'shopping' ? 'other' : place.category,
     visited: place.visited ?? place.status === 'visited',
   })))
-  const [events, setEvents] = useState(() => (cachedTrip?.events || INITIAL_EVENTS).map((event, index) => ({ ...event, id: event.id || `event-${index}-${event.date}` })))
+  const [events, setEvents] = useState(() => normalizeEvents(cachedTrip?.events || INITIAL_EVENTS))
   const [tickets, setTickets] = useState(() => cachedTrip?.tickets || INITIAL_TICKETS)
   const [prepItems, setPrepItems] = useState(() => normalizePrepItems(cachedTrip))
   const [session, setSession] = useState(null)
@@ -184,7 +196,7 @@ function App() {
   const restoreLocalData = (payload) => {
     if (Array.isArray(payload?.cities)) setCities(payload.cities)
     if (Array.isArray(payload?.places)) setPlaces(payload.places)
-    if (Array.isArray(payload?.events)) setEvents(payload.events)
+    if (Array.isArray(payload?.events)) setEvents(normalizeEvents(payload.events))
     if (Array.isArray(payload?.tickets)) setTickets(payload.tickets)
     if (Array.isArray(payload?.prepItems) || Array.isArray(payload?.checks)) setPrepItems(normalizePrepItems(payload))
   }
@@ -400,7 +412,7 @@ function Schedule({ events, setEvents, notify }) {
     <div className="page">
       <SectionHead eyebrow="ITINERARY" title="전체 일정" description="도시, 날짜, 시간, 제목, 설명과 상태 문구를 모두 직접 수정할 수 있어요." action={<button className="primary-button" onClick={() => setEditor({})}><Icon name="plus" size={18} /> 일정 추가</button>} />
       <div className="filter-bar schedule-filters">
-        {[['all','전체'],['plane','항공'],['train','교통'],['ticket','티켓'],['pin','방문']].map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}
+        {[['all','전체'],['transport','항공 · 교통'],['tour','투어'],['pin','방문']].map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}
       </div>
       <div className="schedule-list">
         {visible.map((event, index) => (
@@ -434,7 +446,7 @@ function ScheduleEditor({ event, onClose, onSave }) {
     submitEvent.preventDefault()
     if (form.title.trim() && form.date.trim()) onSave(form)
   }
-  return <div className="modal-backdrop" onMouseDown={mouseEvent => mouseEvent.target === mouseEvent.currentTarget && onClose()}><form className="place-editor schedule-editor" onSubmit={submit}><header><div><span className="eyebrow">ITINERARY DETAILS</span><h2>{event.id ? '일정 수정' : '새 일정 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label><span>날짜 <em>*</em></span><input autoFocus value={form.date} onChange={changeEvent => update('date', changeEvent.target.value)} placeholder="09.02" maxLength="5" required /></label><label><span>요일</span><select value={form.day} onChange={changeEvent => update('day', changeEvent.target.value)}>{['월','화','수','목','금','토','일'].map(day => <option key={day}>{day}</option>)}</select></label><label><span>시작 시간</span><input value={form.time} onChange={changeEvent => update('time', changeEvent.target.value)} placeholder="09:00" /></label><label><span>종료 시간</span><input value={form.end} onChange={changeEvent => update('end', changeEvent.target.value)} placeholder="12:30 또는 —" /></label><label><span>도시</span><input value={form.city} onChange={changeEvent => update('city', changeEvent.target.value)} placeholder="Barcelona" /></label><label><span>일정 종류</span><select value={form.type} onChange={changeEvent => update('type', changeEvent.target.value)}><option value="plane">항공</option><option value="train">교통</option><option value="ticket">티켓</option><option value="pin">방문</option></select></label><label className="full"><span>제목 <em>*</em></span><input value={form.title} onChange={changeEvent => update('title', changeEvent.target.value)} placeholder="일정 제목" required /></label><label className="full"><span>설명</span><textarea value={form.desc} onChange={changeEvent => update('desc', changeEvent.target.value)} placeholder="장소, 좌석, 준비물 등" rows="3" /></label><label className="full"><span>상태 문구</span><input value={form.status} onChange={changeEvent => update('status', changeEvent.target.value)} placeholder="예: 예약 완료" /></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">{event.id ? '변경사항 저장' : '일정 저장'}</button></footer></form></div>
+  return <div className="modal-backdrop" onMouseDown={mouseEvent => mouseEvent.target === mouseEvent.currentTarget && onClose()}><form className="place-editor schedule-editor" onSubmit={submit}><header><div><span className="eyebrow">ITINERARY DETAILS</span><h2>{event.id ? '일정 수정' : '새 일정 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label><span>날짜 <em>*</em></span><input autoFocus value={form.date} onChange={changeEvent => update('date', changeEvent.target.value)} placeholder="09.02" maxLength="5" required /></label><label><span>요일</span><select value={form.day} onChange={changeEvent => update('day', changeEvent.target.value)}>{['월','화','수','목','금','토','일'].map(day => <option key={day}>{day}</option>)}</select></label><label><span>시작 시간</span><input value={form.time} onChange={changeEvent => update('time', changeEvent.target.value)} placeholder="09:00" /></label><label><span>종료 시간</span><input value={form.end} onChange={changeEvent => update('end', changeEvent.target.value)} placeholder="12:30 또는 —" /></label><label><span>도시</span><input value={form.city} onChange={changeEvent => update('city', changeEvent.target.value)} placeholder="Barcelona" /></label><label><span>일정 종류</span><select value={form.type} onChange={changeEvent => update('type', changeEvent.target.value)}><option value="transport">항공 · 교통</option><option value="tour">투어</option><option value="pin">방문</option></select></label><label className="full"><span>제목 <em>*</em></span><input value={form.title} onChange={changeEvent => update('title', changeEvent.target.value)} placeholder="일정 제목" required /></label><label className="full"><span>설명</span><textarea value={form.desc} onChange={changeEvent => update('desc', changeEvent.target.value)} placeholder="장소, 좌석, 준비물 등" rows="3" /></label><label className="full"><span>상태 문구</span><input value={form.status} onChange={changeEvent => update('status', changeEvent.target.value)} placeholder="예: 예약 완료" /></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">{event.id ? '변경사항 저장' : '일정 저장'}</button></footer></form></div>
 }
 
 function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
