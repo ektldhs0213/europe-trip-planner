@@ -250,7 +250,7 @@ function App() {
           {view === 'schedule' && <Schedule events={events} setEvents={setEvents} notify={notify} />}
           {view === 'cities' && <Cities cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onNavigate={navigate} notify={notify} />}
           {view === 'city' && <CityDetail cityId={selectedCity} cities={cities} places={places} setPlaces={setPlaces} onBack={() => navigate('cities')} notify={notify} />}
-          {view === 'bookings' && <Bookings tickets={tickets} setTickets={setTickets} session={session} isOnline={pwa.isOnline} notify={notify} />}
+          {view === 'bookings' && <Bookings cities={cities} tickets={tickets} setTickets={setTickets} session={session} isOnline={pwa.isOnline} notify={notify} />}
           {view === 'prep' && <Prep cities={cities} places={places} events={events} tickets={tickets} prepItems={prepItems} setPrepItems={setPrepItems} session={session} pwa={pwa} onRestore={restoreLocalData} notify={notify} />}
         </div>
       </main>
@@ -735,7 +735,7 @@ function ConfirmDelete({ place, onClose, onConfirm }) {
   return <div className="modal-backdrop"><div className="confirm-modal"><div className="delete-icon"><Icon name="trash" /></div><h2>이 장소를 삭제할까요?</h2><p><strong>{place.name}</strong>의 메모와 방문 정보가 함께 삭제됩니다.</p><div><button className="cancel-button" onClick={onClose}>취소</button><button className="danger-button" onClick={onConfirm}>삭제하기</button></div></div></div>
 }
 
-function Bookings({ tickets, setTickets, session, isOnline, notify }) {
+function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [offlineTicketIds, setOfflineTicketIds] = useState([])
@@ -801,6 +801,20 @@ function Bookings({ tickets, setTickets, session, isOnline, notify }) {
   }
 
   const canUseCloud = isSupabaseConfigured && session && isOnline
+  const ticketGroups = useMemo(() => {
+    const groups = new Map()
+    tickets.forEach(ticket => {
+      const cityValue = String(ticket.city || '').trim().toLowerCase()
+      const matchedCity = cities.find(city => [city.id, city.name, city.ko].some(value => String(value || '').toLowerCase() === cityValue))
+      const matchedCountry = COUNTRY_OPTIONS.find(country => country.name.toLowerCase() === cityValue || country.ko === ticket.city)
+      const country = matchedCity?.country || matchedCountry?.name || '기타'
+      const flag = matchedCity?.flag || matchedCountry?.flag || '🌍'
+      if (!groups.has(country)) groups.set(country, { country, flag, tickets: [] })
+      groups.get(country).tickets.push(ticket)
+    })
+    return [...groups.values()].sort((a, b) => a.country === '기타' ? 1 : b.country === '기타' ? -1 : a.country.localeCompare(b.country))
+  }, [tickets, cities])
+
   return (
     <div className="page">
       <SectionHead eyebrow="PRIVATE TICKET VAULT" title="예약 · 티켓" description="PDF와 이미지 티켓을 비공개 클라우드에 보관하고 어느 기기에서든 열어보세요." action={<button className="primary-button" disabled={!canUseCloud} onClick={() => setUploadOpen(true)}><Icon name="upload" size={18} /> 티켓 업로드</button>} />
@@ -808,11 +822,16 @@ function Bookings({ tickets, setTickets, session, isOnline, notify }) {
         <span><Icon name={canUseCloud ? 'cloud' : 'database'} /></span>
         <div><strong>{canUseCloud ? `${session.user.email} 계정에 안전하게 저장됩니다` : '클라우드 연결이 필요해요'}</strong><p>{canUseCloud ? '파일은 비공개 Storage에 저장되며 5분 동안 유효한 링크로만 열립니다.' : '여행 준비 메뉴에서 Supabase를 연결하고 이메일로 로그인해 주세요.'}</p></div>
       </div>
-      <div className="ticket-grid">{tickets.map(item => {
-        const date = item.event_date ? new Date(`${item.event_date}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
-        const isOfflineReady = offlineTicketIds.includes(String(item.id))
-        return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" /><span>{isOfflineReady ? 'OFFLINE READY' : item.storage_path ? 'BACKED UP' : 'UPLOAD NEEDED'}</span></div><div className="ticket-main"><span>{item.city || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={14}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={14}/></button></div></div></div></article>
-      })}</div>
+      <div className="ticket-country-list">{ticketGroups.map(group => (
+        <details className="ticket-country-group" key={group.country}>
+          <summary><span><b>{group.flag}</b><strong>{group.country}</strong></span><span>{group.tickets.length}개 <Icon name="chevron" size={15} /></span></summary>
+          <div className="ticket-grid">{group.tickets.map(item => {
+            const date = item.event_date ? new Date(`${item.event_date}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
+            const isOfflineReady = offlineTicketIds.includes(String(item.id))
+            return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={17} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{item.city || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
+          })}</div>
+        </details>
+      ))}</div>
       {uploadOpen && <TicketUploadEditor busy={busy} onClose={() => setUploadOpen(false)} onSave={handleUpload} />}
     </div>
   )
