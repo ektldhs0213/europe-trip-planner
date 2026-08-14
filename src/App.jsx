@@ -509,6 +509,13 @@ function Schedule({ events, setEvents, notify }) {
     return next
   })
 
+  const deleteEvent = (event) => {
+    if (!window.confirm(`“${event.title}” 일정을 삭제할까요?`)) return
+    setEvents(current => current.filter(item => item.id !== event.id))
+    setEditor(null)
+    notify('일정을 삭제했어요.')
+  }
+
   return (
     <div className="page">
       <SectionHead eyebrow="ITINERARY" title="전체 일정" description="날짜별로 일정을 펼쳐 보고 모든 내용을 직접 수정할 수 있어요." action={<button className="primary-button" onClick={() => setEditor({})}><Icon name="plus" size={18} /> 일정 추가</button>} />
@@ -531,12 +538,12 @@ function Schedule({ events, setEvents, notify }) {
           </details>
         ))}
       </div>
-      {editor && <ScheduleEditor event={editor} onClose={() => setEditor(null)} onSave={saveEvent} />}
+      {editor && <ScheduleEditor event={editor} onClose={() => setEditor(null)} onSave={saveEvent} onDelete={deleteEvent} />}
     </div>
   )
 }
 
-function ScheduleEditor({ event, onClose, onSave }) {
+function ScheduleEditor({ event, onClose, onSave, onDelete }) {
   const initialDate = scheduleDateParts(event.date)
   const [form, setForm] = useState({
     date: initialDate?.input || '',
@@ -557,7 +564,7 @@ function ScheduleEditor({ event, onClose, onSave }) {
     const date = scheduleDateParts(form.date)
     if (form.title.trim() && date) onSave({ ...form, date: date.display, day: date.day })
   }
-  return <div className="modal-backdrop" onMouseDown={mouseEvent => mouseEvent.target === mouseEvent.currentTarget && onClose()}><form className="place-editor schedule-editor" onSubmit={submit}><header><div><span className="eyebrow">ITINERARY DETAILS</span><h2>{event.id ? '일정 수정' : '새 일정 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label><span>날짜 <em>*</em></span><input autoFocus type="date" value={form.date} onChange={changeEvent => update('date', changeEvent.target.value)} required /></label><label><span>요일</span><input value={form.day ? `${form.day}요일` : ''} placeholder="날짜를 선택하면 자동 표시" readOnly /></label><label><span>시작 시간</span><input value={form.time} onChange={changeEvent => update('time', changeEvent.target.value)} placeholder="09:00" /></label><label><span>종료 시간</span><input value={form.end} onChange={changeEvent => update('end', changeEvent.target.value)} placeholder="12:30 또는 —" /></label><label><span>도시</span><input value={form.city} onChange={changeEvent => update('city', changeEvent.target.value)} placeholder="Barcelona" /></label><label><span>일정 종류</span><select value={form.type} onChange={changeEvent => update('type', changeEvent.target.value)}><option value="transport">항공 · 교통</option><option value="tour">투어</option><option value="pin">방문</option></select></label><label className="full"><span>제목 <em>*</em></span><input value={form.title} onChange={changeEvent => update('title', changeEvent.target.value)} placeholder="일정 제목" required /></label><label className="full"><span>설명</span><textarea value={form.desc} onChange={changeEvent => update('desc', changeEvent.target.value)} placeholder="장소, 좌석, 준비물 등" rows="3" /></label><label className="full"><span>상태</span><select value={form.status} onChange={changeEvent => update('status', changeEvent.target.value)}><option value="예매 완료">예매 완료</option><option value="예매 불필요">예매 불필요</option></select></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">{event.id ? '변경사항 저장' : '일정 저장'}</button></footer></form></div>
+  return <div className="modal-backdrop" onMouseDown={mouseEvent => mouseEvent.target === mouseEvent.currentTarget && onClose()}><form className="place-editor schedule-editor" onSubmit={submit}><header><div><span className="eyebrow">ITINERARY DETAILS</span><h2>{event.id ? '일정 수정' : '새 일정 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label><span>날짜 <em>*</em></span><input autoFocus type="date" value={form.date} onChange={changeEvent => update('date', changeEvent.target.value)} required /></label><label><span>요일</span><input value={form.day ? `${form.day}요일` : ''} placeholder="날짜를 선택하면 자동 표시" readOnly /></label><label><span>시작 시간</span><input value={form.time} onChange={changeEvent => update('time', changeEvent.target.value)} placeholder="09:00" /></label><label><span>종료 시간</span><input value={form.end} onChange={changeEvent => update('end', changeEvent.target.value)} placeholder="12:30 또는 —" /></label><label><span>도시</span><input value={form.city} onChange={changeEvent => update('city', changeEvent.target.value)} placeholder="Barcelona" /></label><label><span>일정 종류</span><select value={form.type} onChange={changeEvent => update('type', changeEvent.target.value)}><option value="transport">항공 · 교통</option><option value="tour">투어</option><option value="pin">방문</option></select></label><label className="full"><span>제목 <em>*</em></span><input value={form.title} onChange={changeEvent => update('title', changeEvent.target.value)} placeholder="일정 제목" required /></label><label className="full"><span>설명</span><textarea value={form.desc} onChange={changeEvent => update('desc', changeEvent.target.value)} placeholder="장소, 좌석, 준비물 등" rows="3" /></label><label className="full"><span>상태</span><select value={form.status} onChange={changeEvent => update('status', changeEvent.target.value)}><option value="예매 완료">예매 완료</option><option value="예매 불필요">예매 불필요</option></select></label></div><footer>{event.id && <button type="button" className="danger-button schedule-delete-button" onClick={() => onDelete(event)}><Icon name="trash" size={15} /> 일정 삭제</button>}<button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" type="submit">{event.id ? '변경사항 저장' : '일정 저장'}</button></footer></form></div>
 }
 
 function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {

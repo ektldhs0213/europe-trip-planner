@@ -238,6 +238,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .check-add-form { margin: 2px 0 8px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.schedule-delete-button { margin-right: auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .check-add-form input { min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-size: 9px; }
 .check-add-form .primary-button { min-height: 42px; padding: 0 15px; }
 .check-add-form .primary-button:disabled { opacity: .5; cursor: not-allowed; }
