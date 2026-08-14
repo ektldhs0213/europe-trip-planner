@@ -48,7 +48,7 @@ const NAV_ITEMS = [
   { id: 'schedule', label: '전체 일정', icon: 'calendar' },
   { id: 'cities', label: '도시', icon: 'pin' },
   { id: 'bookings', label: '예약 · 티켓', icon: 'bookmark' },
-  { id: 'prep', label: '여행 준비', icon: 'backpack' },
+  { id: 'prep', label: '준비', icon: 'backpack' },
 ]
 
 const INITIAL_CITIES = [
@@ -539,7 +539,7 @@ function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
 
   return (
     <div className="page">
-      <SectionHead eyebrow={`${cities.length} CITIES · ${countries.length} COUNTRIES`} title="저장한 도시" description="도시를 추가하거나 여러 장소를 한 번에 붙여넣을 수 있어요." action={<div className="head-actions"><button className="secondary-button" onClick={() => setBulkImportOpen(true)}><Icon name="upload" size={17} /> 장소 일괄 추가</button><button className="primary-button" onClick={() => setCityEditorOpen(true)}><Icon name="plus" size={18} /> 도시 추가</button></div>} />
+      <SectionHead eyebrow={`${cities.length} CITIES · ${countries.length} COUNTRIES`} title="도시" description="도시를 추가하거나 여러 장소를 한 번에 붙여넣을 수 있어요." action={<div className="head-actions"><button className="secondary-button" onClick={() => setBulkImportOpen(true)}><Icon name="upload" size={17} /> 장소 일괄 추가</button><button className="primary-button" onClick={() => setCityEditorOpen(true)}><Icon name="plus" size={18} /> 도시 추가</button></div>} />
       {countries.map(country => (
         <section className="country-section" key={country}>
           <div className="country-title"><h2>{cities.find(city => city.country === country).flag} {country}</h2><span>{cities.filter(city => city.country === country).length}개 도시</span></div>
@@ -820,7 +820,7 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
       <SectionHead eyebrow="PRIVATE TICKET VAULT" title="예약 · 티켓" description="PDF와 이미지 티켓을 비공개 클라우드에 보관하고 어느 기기에서든 열어보세요." action={<button className="primary-button" disabled={!canUseCloud} onClick={() => setUploadOpen(true)}><Icon name="upload" size={18} /> 티켓 업로드</button>} />
       <div className={`cloud-notice ${canUseCloud ? 'ready' : ''}`}>
         <span><Icon name={canUseCloud ? 'cloud' : 'database'} /></span>
-        <div><strong>{canUseCloud ? `${session.user.email} 계정에 안전하게 저장됩니다` : '클라우드 연결이 필요해요'}</strong><p>{canUseCloud ? '파일은 비공개 Storage에 저장되며 5분 동안 유효한 링크로만 열립니다.' : '여행 준비 메뉴에서 Supabase를 연결하고 이메일로 로그인해 주세요.'}</p></div>
+        <div><strong>{canUseCloud ? `${session.user.email} 계정에 안전하게 저장됩니다` : '클라우드 연결이 필요해요'}</strong><p>{canUseCloud ? '파일은 비공개 Storage에 저장되며 5분 동안 유효한 링크로만 열립니다.' : '준비 메뉴에서 Supabase를 연결하고 이메일로 로그인해 주세요.'}</p></div>
       </div>
       <div className="ticket-country-list">{ticketGroups.map(group => (
         <details className="ticket-country-group" key={group.country}>
@@ -897,7 +897,7 @@ function Prep({ cities, places, events, tickets, prepItems, setPrepItems, sessio
     notify('여행 준비 항목을 삭제했어요.')
   }
 
-  return <div className="page"><SectionHead eyebrow="BACKUP & PREP" title="여행 준비" description="기기 분실에 대비해 여행 데이터를 백업하고 출발 준비를 확인하세요." /><div className="prep-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={{ cities, places, events, tickets, prepItems }} onRestore={onRestore} notify={notify} /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
+  return <div className="page"><SectionHead eyebrow="BACKUP & PREP" title="준비" description="기기 분실에 대비해 여행 데이터를 백업하고 출발 준비를 확인하세요." /><div className="prep-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={{ cities, places, events, tickets, prepItems }} onRestore={onRestore} notify={notify} /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
 }
 
 function CloudBackupPanel({ session, isOnline, payload, onRestore, notify }) {
