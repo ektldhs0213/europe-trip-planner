@@ -77,15 +77,29 @@ const INITIAL_TICKETS = [
 ]
 
 const INITIAL_EVENTS = [
-  { id: 'event-flight-in', date: '09.02', day: '수', city: 'Lisbon', time: '12:45', end: '20:15', title: '인천 → 리스본', desc: 'ICN · EK323 / EK193 · LIS', type: 'transport', status: '예매 완료' },
-  { id: 'event-belem', date: '09.03', day: '목', city: 'Lisbon', time: '10:00', end: '12:30', title: '벨렝 지구 산책', desc: '제로니무스 수도원 · 에그타르트', type: 'pin', status: '예매 불필요' },
-  { id: 'event-porto-train', date: '09.05', day: '토', city: 'Porto', time: '14:09', end: '16:48', title: 'Lisboa Oriente → Porto', desc: 'Alfa Pendular · Coach 4 · Seat 12A', type: 'transport', status: '예매 완료' },
+  { id: 'event-0902-flight-in', date: '09.02', day: '수', city: '리스본', time: '12:45', end: '20:15', title: '인천 → 리스본', desc: '항공편 EK323, EK193 / 두바이 경유', type: 'transport', status: '예매 완료' },
+  { id: 'event-0902-lisbon-checkin', date: '09.02', day: '수', city: '리스본', time: '21:00', end: '22:00', title: '숙소 체크인', desc: '리스본 숙소 체크인 및 휴식', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0903-lisbon-morning', date: '09.03', day: '목', city: '리스본', time: '09:00', end: '12:30', title: '리스본 오전 관광', desc: '리스본 시내 자유관광', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0903-porto-train', date: '09.03', day: '목', city: '포르투', time: '14:09', end: '16:48', title: '리스본 → 포르투', desc: 'CP Alfa Pendular 133', type: 'transport', status: '예매 완료' },
+  { id: 'event-0903-porto-checkin', date: '09.03', day: '목', city: '포르투', time: '17:30', end: '18:00', title: '숙소 체크인', desc: 'ZERO Box Lodge Porto', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0904-grahams-tour', date: '09.04', day: '금', city: '포르투', time: '09:00', end: '13:00', title: '그라함즈 와이너리 투어', desc: '마이리얼트립 / 한국어 가이드 와이너리 투어', type: 'tour', status: '예매 완료' },
+  { id: 'event-0904-porto-night-tour', date: '09.04', day: '금', city: '포르투', time: '15:00', end: '21:00', title: '포르투 반일·야경 투어', desc: '마이리얼트립 / 포르투 시내 및 야경 투어', type: 'tour', status: '예매 완료' },
+  { id: 'event-0905-porto-free', date: '09.05', day: '토', city: '포르투', time: '10:00', end: '21:00', title: '포르투 자유여행', desc: '투어에서 못 본 관광지·강변·맛집 등 자유관광', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0906-lisbon-train', date: '09.06', day: '일', city: '리스본', time: '08:45', end: '11:52', title: '포르투 → 리스본', desc: 'CP Intercidades 522 / 리스본 오리엔테역 도착', type: 'transport', status: '예매 완료' },
+  { id: 'event-0906-lisbon-night-tour', date: '09.06', day: '일', city: '리스본', time: '14:00', end: '21:00', title: '리스본 시내·야경 투어', desc: '마이리얼트립 / 리스본 시내 및 야경', type: 'tour', status: '예매 완료' },
+  { id: 'event-0908-lisbon-last', date: '09.08', day: '화', city: '리스본', time: '09:00', end: '11:00', title: '리스본 마지막 관광', desc: '포르투갈 마지막 오전 / 못 본 장소 보충', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0908-airport', date: '09.08', day: '화', city: '리스본', time: '11:00', end: '12:00', title: '리스본 공항 이동', desc: '리스본 공항 T2 이동 및 출국 준비', type: 'transport', status: '예매 불필요' },
+  { id: 'event-0908-sevilla-flight', date: '09.08', day: '화', city: '세비야', time: '13:40', end: '15:45', title: '리스본 → 세비야', desc: 'Ryanair FR3628 / LIS T2 → SVQ', type: 'transport', status: '예매 완료' },
+  { id: 'event-0908-sevilla-checkin', date: '09.08', day: '화', city: '세비야', time: '17:00', end: '18:00', title: '숙소 체크인', desc: '세비야 숙소 체크인', type: 'pin', status: '예매 완료' },
+  { id: 'event-0908-flamenco', date: '09.08', day: '화', city: '세비야', time: '20:00', end: '22:00', title: '플라멩코 공연', desc: '공연장 선택 후 예약 예정', type: 'tour', status: '예매 불필요' },
   { id: 'event-alhambra', date: '09.12', day: '토', city: 'Granada', time: '09:00', end: '12:30', title: 'Alhambra Nasrid Palaces', desc: '입장 30분 전 도착 · 여권 필수', type: 'tour', status: '예매 완료' },
   { id: 'event-gaudi', date: '09.17', day: '목', city: 'Barcelona', time: '13:30', end: '17:30', title: '가우디 건축 오후', desc: 'Casa Milà → Casa Batlló', type: 'pin', status: '예매 완료' },
   { id: 'event-flight-out', date: '10.08', day: '목', city: 'Helsinki', time: '17:30', end: '—', title: 'Helsinki → Seoul', desc: 'HEL · AY041 · ICN', type: 'transport', status: '예매 완료' },
 ]
 
 const TRIP_YEAR = 2026
+const SCHEDULE_DATA_VERSION = 2
+const PUBLISHED_SCHEDULE_DATES = new Set(['09.02', '09.03', '09.04', '09.05', '09.06', '09.07', '09.08'])
 const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 function normalizeScheduleStatus(status) {
@@ -117,6 +131,13 @@ function normalizeEvents(items) {
       ? 'transport'
       : event.type === 'ticket' ? 'tour' : event.type,
   }))
+}
+
+function migrateScheduleEvents(items, dataVersion) {
+  if (dataVersion === SCHEDULE_DATA_VERSION) return normalizeEvents(items)
+  const preserved = items.filter(event => !PUBLISHED_SCHEDULE_DATES.has(scheduleDateParts(event.date)?.display || event.date))
+  const published = INITIAL_EVENTS.filter(event => PUBLISHED_SCHEDULE_DATES.has(event.date))
+  return normalizeEvents([...preserved, ...published])
 }
 
 const categoryLabels = {
@@ -223,14 +244,14 @@ function App() {
     category: place.category === 'shopping' ? 'other' : place.category,
     visited: place.visited ?? place.status === 'visited',
   })))
-  const [events, setEvents] = useState(() => normalizeEvents(cachedTrip?.events || INITIAL_EVENTS))
+  const [events, setEvents] = useState(() => migrateScheduleEvents(cachedTrip?.events || INITIAL_EVENTS, cachedTrip?.scheduleDataVersion))
   const [tickets, setTickets] = useState(() => cachedTrip?.tickets || INITIAL_TICKETS)
   const [prepItems, setPrepItems] = useState(() => normalizePrepItems(cachedTrip))
   const [session, setSession] = useState(null)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
-    saveLocalTrip({ cities, places, events, tickets, prepItems })
+    saveLocalTrip({ cities, places, events, tickets, prepItems, scheduleDataVersion: SCHEDULE_DATA_VERSION })
   }, [cities, places, events, tickets, prepItems])
 
   useEffect(() => {
@@ -261,7 +282,7 @@ function App() {
   const restoreLocalData = (payload) => {
     if (Array.isArray(payload?.cities)) setCities(payload.cities)
     if (Array.isArray(payload?.places)) setPlaces(payload.places)
-    if (Array.isArray(payload?.events)) setEvents(normalizeEvents(payload.events))
+    if (Array.isArray(payload?.events)) setEvents(migrateScheduleEvents(payload.events, payload.scheduleDataVersion))
     if (Array.isArray(payload?.tickets)) setTickets(payload.tickets)
     if (Array.isArray(payload?.prepItems) || Array.isArray(payload?.checks)) setPrepItems(normalizePrepItems(payload))
   }
