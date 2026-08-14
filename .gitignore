@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vite/
+.pnpm-store/
+.env
+.env.local
+*.log
