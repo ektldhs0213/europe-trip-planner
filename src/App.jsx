@@ -597,14 +597,14 @@ function BulkPlaceImport({ cities, places, onClose, onImport }) {
 function CityEditor({ onClose, onSave }) {
   const [form, setForm] = useState({ country: 'Portugal', name: '', ko: '', startDate: '', endDate: '' })
   const update = (field, value) => setForm(current => ({ ...current, [field]: value }))
-  const selectedCountry = COUNTRY_OPTIONS.find(country => country.name === form.country)
+  const selectedCountry = COUNTRY_OPTIONS.find(country => country.name === form.country || country.ko === form.country)
   const validDates = form.startDate && form.endDate && form.endDate >= form.startDate
   const submit = (event) => {
     event.preventDefault()
     const values = Object.fromEntries(new FormData(event.currentTarget))
     const datesAreValid = values.startDate && values.endDate && values.endDate >= values.startDate
-    const countryIsValid = COUNTRY_OPTIONS.some(country => country.name === values.country)
-    if (values.name.trim() && datesAreValid && countryIsValid) onSave(values)
+    const matchedCountry = COUNTRY_OPTIONS.find(country => country.name === values.country || country.ko === values.country)
+    if (values.name.trim() && datesAreValid && matchedCountry) onSave({ ...values, country: matchedCountry.name })
   }
 
   return (
