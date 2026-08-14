@@ -359,10 +359,31 @@ function Home({ onNavigate }) {
   )
 }
 
+function eventSortKey(event, originalIndex) {
+  const dateMatch = String(event.date || '').match(/(\d{1,2})\D+(\d{1,2})/)
+  const timeMatch = String(event.time || '').match(/(\d{1,2}):(\d{2})/)
+  const dateValue = dateMatch
+    ? Number(dateMatch[1]) * 32 + Number(dateMatch[2])
+    : Number.MAX_SAFE_INTEGER
+  const timeValue = timeMatch
+    ? Number(timeMatch[1]) * 60 + Number(timeMatch[2])
+    : 24 * 60
+
+  return [dateValue, timeValue, originalIndex]
+}
+
 function Schedule({ events, setEvents, notify }) {
   const [filter, setFilter] = useState('all')
   const [editor, setEditor] = useState(null)
-  const visible = events.filter(event => filter === 'all' || event.type === filter)
+  const visible = useMemo(() => events
+    .map((event, originalIndex) => ({ event, sortKey: eventSortKey(event, originalIndex) }))
+    .filter(({ event }) => filter === 'all' || event.type === filter)
+    .sort((a, b) => (
+      a.sortKey[0] - b.sortKey[0]
+      || a.sortKey[1] - b.sortKey[1]
+      || a.sortKey[2] - b.sortKey[2]
+    ))
+    .map(({ event }) => event), [events, filter])
 
   const saveEvent = (form) => {
     if (editor?.id) {
