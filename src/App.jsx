@@ -92,14 +92,36 @@ const INITIAL_EVENTS = [
   { id: 'event-0908-sevilla-flight', date: '09.08', day: '화', city: '세비야', time: '13:40', end: '15:45', title: '리스본 → 세비야', desc: 'Ryanair FR3628 / LIS T2 → SVQ', type: 'transport', status: '예매 완료' },
   { id: 'event-0908-sevilla-checkin', date: '09.08', day: '화', city: '세비야', time: '17:00', end: '18:00', title: '숙소 체크인', desc: '세비야 숙소 체크인', type: 'pin', status: '예매 완료' },
   { id: 'event-0908-flamenco', date: '09.08', day: '화', city: '세비야', time: '20:00', end: '22:00', title: '플라멩코 공연', desc: '공연장 선택 후 예약 예정', type: 'tour', status: '예매 불필요' },
-  { id: 'event-alhambra', date: '09.12', day: '토', city: 'Granada', time: '09:00', end: '12:30', title: 'Alhambra Nasrid Palaces', desc: '입장 30분 전 도착 · 여권 필수', type: 'tour', status: '예매 완료' },
-  { id: 'event-gaudi', date: '09.17', day: '목', city: 'Barcelona', time: '13:30', end: '17:30', title: '가우디 건축 오후', desc: 'Casa Milà → Casa Batlló', type: 'pin', status: '예매 완료' },
+  { id: 'event-0909-sevilla-tour', date: '09.09', day: '수', city: '세비야', time: '미정', end: '16:00', title: '세비야 시내 투어', desc: '세비야 대성당 내부 입장 포함 투어 / 정확한 시작·종료시간 확인 필요', type: 'tour', status: '예매 필요' },
+  { id: 'event-0909-ronda-tour', date: '09.09', day: '수', city: '론다', time: '16:00', end: '미정', title: '론다 일몰·야경 투어', desc: '세비야 출발 → 론다 관광 → 일몰·야경 → 세비야 복귀 / 앞 투어와 연결시간 확인 필요', type: 'tour', status: '예매 필요' },
+  { id: 'event-0910-alcazar', date: '09.10', day: '목', city: '세비야', time: '09:30', end: '12:30', title: '알카사르 궁전', desc: '알카사르 궁전 내부 및 정원 자유관람', type: 'pin', status: '예매 필요' },
+  { id: 'event-0910-sevilla-free', date: '09.10', day: '목', city: '세비야', time: '13:00', end: '21:00', title: '세비야 자유여행', desc: '스페인광장·트리아나·메트로폴 파라솔 등 미방문 장소 자유관광', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0911-rental-pickup', date: '09.11', day: '금', city: '세비야', time: '09:30', end: '10:00', title: '렌터카 픽업', desc: '세비야에서 렌터카 수령 / 이후 스페인 로드트립', type: 'transport', status: '예매 필요' },
+  { id: 'event-0911-drive-nerja', date: '09.11', day: '금', city: '네르하', time: '10:00', end: '12:30', title: '세비야 → 네르하', desc: '렌터카 이동', type: 'transport', status: '예매 불필요' },
+  { id: 'event-0911-nerja-tour', date: '09.11', day: '금', city: '네르하', time: '12:30', end: '19:30', title: '네르하 관광', desc: '네르하 동굴·구시가지·발콘 데 에우로파·해변 등', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0911-nerja-sunset', date: '09.11', day: '금', city: '네르하', time: '19:30', end: '20:00', title: '네르하 일몰', desc: '지중해 일몰 및 매직아워 감상', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0911-drive-granada', date: '09.11', day: '금', city: '그라나다', time: '20:00', end: '21:15', title: '네르하 → 그라나다', desc: '일몰 후 렌터카로 그라나다 이동', type: 'transport', status: '예매 불필요' },
+  { id: 'event-0911-granada-checkin', date: '09.11', day: '금', city: '그라나다', time: '21:30', end: '22:00', title: '숙소 체크인', desc: '다음날 오전 알함브라 일정 / 그라나다 숙박', type: 'pin', status: '예매 필요' },
+  { id: 'event-0912-alhambra', date: '09.12', day: '토', city: '그라나다', time: '09:00', end: '13:00', title: '알함브라 궁전 투어', desc: '나스리 궁전 09:00 입장 / 알함브라 궁전 가이드 투어', type: 'tour', status: '예매 완료' },
+  { id: 'event-0912-granada-tour', date: '09.12', day: '토', city: '그라나다', time: '14:00', end: '20:00', title: '그라나다 시내 관광', desc: '대성당·알바이신·산 니콜라스 전망대 등', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0913-roadtrip-move', date: '09.13', day: '일', city: '미정', time: '미정', end: '미정', title: '그라나다 → 바르셀로나 방향 이동', desc: '렌터카 로드트립 / 경유지 및 숙박지역 결정 필요', type: 'transport', status: '예매 불필요' },
+  { id: 'event-0913-east-roadtrip', date: '09.13', day: '일', city: '미정', time: '미정', end: '미정', title: '스페인 동부 로드트립', desc: '경유 도시 관광 / 목적지 결정 필요', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0914-roadtrip-move', date: '09.14', day: '월', city: '미정', time: '미정', end: '미정', title: '바르셀로나 방향 이동', desc: '렌터카 이동 / 9/14 바르셀로나 조기 도착안 검토', type: 'transport', status: '예매 불필요' },
+  { id: 'event-0914-east-roadtrip', date: '09.14', day: '월', city: '미정', time: '미정', end: '미정', title: '스페인 동부 로드트립', desc: '경유지 또는 바르셀로나 자유관광', type: 'pin', status: '예매 불필요' },
+  { id: 'event-0915-barcelona-arrival', date: '09.15', day: '화', city: '바르셀로나', time: '미정', end: '미정', title: '바르셀로나 도착', desc: '렌터카 반납 / 도착일을 9/14로 당기는 안도 검토 중', type: 'transport', status: '예매 불필요' },
+  { id: 'event-0915-barcelona-checkin', date: '09.15', day: '화', city: '바르셀로나', time: '미정', end: '미정', title: '숙소 체크인', desc: '바르셀로나 숙소', type: 'pin', status: '예매 필요' },
+  { id: 'event-0916-sagrada', date: '09.16', day: '수', city: '바르셀로나', time: '10:30', end: '미정', title: '사그라다 파밀리아', desc: '성당 입장 + 탄생의 파사드 타워', type: 'pin', status: '예매 완료' },
+  { id: 'event-0916-barcelona-match', date: '09.16', day: '수', city: '바르셀로나', time: '21:00', end: '23:00', title: 'FC 바르셀로나 경기', desc: 'FC 바르셀로나 vs 라싱 산탄데르 / 1st Grandstand Basic Plus', type: 'pin', status: '예매 완료' },
+  { id: 'event-0917-casa-mila', date: '09.17', day: '목', city: '바르셀로나', time: '13:30', end: '15:00', title: '카사 밀라', desc: 'La Pedrera 입장 + 오디오가이드', type: 'pin', status: '예매 완료' },
+  { id: 'event-0917-casa-batllo', date: '09.17', day: '목', city: '바르셀로나', time: '15:45', end: '17:15', title: '카사 바트요', desc: 'Casa Batlló Silver 티켓', type: 'pin', status: '예매 완료' },
+  { id: 'event-0917-sagrada-rooftop', date: '09.17', day: '목', city: '바르셀로나', time: '미정', end: '미정', title: '사그라다 파밀리아 뷰 루프탑', desc: 'Sercotel Rosellón 루프탑 바 / 9월 17일 저녁 이용 예정', type: 'pin', status: '예매 필요' },
   { id: 'event-flight-out', date: '10.08', day: '목', city: 'Helsinki', time: '17:30', end: '—', title: 'Helsinki → Seoul', desc: 'HEL · AY041 · ICN', type: 'transport', status: '예매 완료' },
 ]
 
 const TRIP_YEAR = 2026
-const SCHEDULE_DATA_VERSION = 2
-const PUBLISHED_SCHEDULE_DATES = new Set(['09.02', '09.03', '09.04', '09.05', '09.06', '09.07', '09.08'])
+const SCHEDULE_DATA_VERSION = 3
+const PORTUGAL_SCHEDULE_DATES = new Set(['09.02', '09.03', '09.04', '09.05', '09.06', '09.07', '09.08'])
+const SPAIN_SCHEDULE_DATES = new Set(['09.09', '09.10', '09.11', '09.12', '09.13', '09.14', '09.15', '09.16', '09.17'])
 const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 function normalizeScheduleStatus(status) {
@@ -139,8 +161,11 @@ function normalizeEvents(items) {
 
 function migrateScheduleEvents(items, dataVersion) {
   if (dataVersion === SCHEDULE_DATA_VERSION) return normalizeEvents(items)
-  const preserved = items.filter(event => !PUBLISHED_SCHEDULE_DATES.has(scheduleDateParts(event.date)?.display || event.date))
-  const published = INITIAL_EVENTS.filter(event => PUBLISHED_SCHEDULE_DATES.has(event.date))
+  const datesToReplace = dataVersion === 2
+    ? SPAIN_SCHEDULE_DATES
+    : new Set([...PORTUGAL_SCHEDULE_DATES, ...SPAIN_SCHEDULE_DATES])
+  const preserved = items.filter(event => !datesToReplace.has(scheduleDateParts(event.date)?.display || event.date))
+  const published = INITIAL_EVENTS.filter(event => datesToReplace.has(event.date))
   return normalizeEvents([...preserved, ...published])
 }
 
@@ -464,12 +489,13 @@ function Home({ onNavigate }) {
 function eventSortKey(event, originalIndex) {
   const dateMatch = String(event.date || '').match(/(\d{1,2})\D+(\d{1,2})/)
   const timeMatch = String(event.time || '').match(/(\d{1,2}):(\d{2})/)
+  const endMatch = String(event.end || '').match(/(\d{1,2}):(\d{2})/)
   const dateValue = dateMatch
     ? Number(dateMatch[1]) * 32 + Number(dateMatch[2])
     : Number.MAX_SAFE_INTEGER
   const timeValue = timeMatch
     ? Number(timeMatch[1]) * 60 + Number(timeMatch[2])
-    : 24 * 60
+    : endMatch ? Math.max(0, Number(endMatch[1]) * 60 + Number(endMatch[2]) - 1) : 24 * 60
 
   return [dateValue, timeValue, originalIndex]
 }
