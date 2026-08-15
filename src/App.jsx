@@ -173,6 +173,22 @@ const categoryLabels = {
   all: '전체', attraction: '관광지', restaurant: '맛집', cafe: '카페', bar: 'Bar', other: '기타',
 }
 
+const PLACE_VISIT_STATUSES = ['tour-planned', 'tour-completed', 'visit-needed', 'visit-completed']
+const placeVisitLabels = { 'tour-planned': '투어 예정', 'tour-completed': '투어 완료', 'visit-needed': '방문 필요', 'visit-completed': '방문 완료' }
+
+function normalizePlace(place) {
+  const legacyStatusMap = { tour: 'tour-planned', needed: 'visit-needed', completed: 'visit-completed' }
+  const visitStatus = PLACE_VISIT_STATUSES.includes(place.visitStatus)
+    ? place.visitStatus
+    : legacyStatusMap[place.visitStatus] || ((place.visited ?? place.status === 'visited') ? 'visit-completed' : 'visit-needed')
+  return {
+    ...place,
+    category: place.category === 'shopping' ? 'other' : place.category,
+    visitStatus,
+    visited: visitStatus === 'visit-completed' || visitStatus === 'tour-completed',
+  }
+}
+
 const BULK_CATEGORY_MAP = {
   '관광지': 'attraction', attraction: 'attraction',
   '맛집': 'restaurant', restaurant: 'restaurant',
@@ -268,11 +284,7 @@ function App() {
   const [view, setView] = useState('schedule')
   const [selectedCity, setSelectedCity] = useState('barcelona')
   const [cities, setCities] = useState(() => cachedTrip?.cities || INITIAL_CITIES)
-  const [places, setPlaces] = useState(() => (cachedTrip?.places || initialPlaces).map(place => ({
-    ...place,
-    category: place.category === 'shopping' ? 'other' : place.category,
-    visited: place.visited ?? place.status === 'visited',
-  })))
+  const [places, setPlaces] = useState(() => (cachedTrip?.places || initialPlaces).map(normalizePlace))
   const [events, setEvents] = useState(() => migrateScheduleEvents(cachedTrip?.events || INITIAL_EVENTS, cachedTrip?.scheduleDataVersion))
   const [tickets, setTickets] = useState(() => cachedTrip?.tickets || INITIAL_TICKETS)
   const [prepItems, setPrepItems] = useState(() => normalizePrepItems(cachedTrip))
@@ -310,7 +322,7 @@ function App() {
 
   const restoreLocalData = (payload) => {
     if (Array.isArray(payload?.cities)) setCities(payload.cities)
-    if (Array.isArray(payload?.places)) setPlaces(payload.places)
+    if (Array.isArray(payload?.places)) setPlaces(payload.places.map(normalizePlace))
     if (Array.isArray(payload?.events)) setEvents(migrateScheduleEvents(payload.events, payload.scheduleDataVersion))
     if (Array.isArray(payload?.tickets)) setTickets(payload.tickets)
     if (Array.isArray(payload?.prepItems) || Array.isArray(payload?.checks)) setPrepItems(normalizePrepItems(payload))
@@ -634,6 +646,7 @@ function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
       description: row.description,
       mapUrl: row.mapUrl,
       priority: 2,
+      visitStatus: 'visit-needed',
       visited: false,
       reservation: false,
       duration: '',
@@ -747,11 +760,12 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
   }, [cityPlaces, category, query, sort])
 
   const savePlace = (form) => {
+    const normalizedForm = { ...form, visited: form.visitStatus === 'visit-completed' || form.visitStatus === 'tour-completed' }
     if (editor?.id) {
-      setPlaces(current => current.map(place => place.id === editor.id ? { ...place, ...form } : place))
+      setPlaces(current => current.map(place => place.id === editor.id ? { ...place, ...normalizedForm } : place))
       notify('장소 정보를 수정했어요.')
     } else {
-      setPlaces(current => [...current, { ...form, id: Date.now(), city: city.id, reservation: false, duration: '', visitDate: '', meta: categoryLabels[form.category] }])
+      setPlaces(current => [...current, { ...normalizedForm, id: Date.now(), city: city.id, reservation: false, duration: '', visitDate: '', meta: categoryLabels[form.category] }])
       notify('새 장소를 추가했어요.')
     }
     setEditor(null)
@@ -763,12 +777,18 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
     notify('장소를 삭제했어요.')
   }
 
+  const cycleVisitStatus = (place) => {
+    const currentIndex = PLACE_VISIT_STATUSES.indexOf(place.visitStatus)
+    const visitStatus = PLACE_VISIT_STATUSES[(currentIndex + 1) % PLACE_VISIT_STATUSES.length]
+    setPlaces(current => current.map(item => item.id === place.id ? { ...item, visitStatus, visited: visitStatus === 'visit-completed' || visitStatus === 'tour-completed' } : item))
+  }
+
   return (
     <div className="page city-detail-page">
       <button className="back-button" onClick={onBack}><span>‹</span> 모든 도시</button>
       <section className={`city-hero ${city.tone}`}>
         <div className="city-hero-copy"><span>{city.flag} {city.country.toUpperCase()}</span><h1>{city.name}</h1><p>{city.ko} · {city.dates} · {city.nights}</p></div>
-        <div className="city-hero-stats"><div><strong>{cityPlaces.length}</strong><span>전체 장소</span></div><div><strong>{cityPlaces.filter(place => place.visited).length}</strong><span>다녀옴</span></div><div><strong>{cityPlaces.filter(place => !place.visited).length}</strong><span>못 다녀옴</span></div></div>
+        <div className="city-hero-stats"><div><strong>{cityPlaces.filter(place => place.visitStatus === 'tour-planned').length}</strong><span>투어 예정</span></div><div><strong>{cityPlaces.filter(place => place.visitStatus === 'tour-completed').length}</strong><span>투어 완료</span></div><div><strong>{cityPlaces.filter(place => place.visitStatus === 'visit-needed').length}</strong><span>방문 필요</span></div><div><strong>{cityPlaces.filter(place => place.visitStatus === 'visit-completed').length}</strong><span>방문 완료</span></div></div>
         <div className="hero-stamp"><span>{city.name.slice(0, 3).toUpperCase()}</span><small>EUROPE<br/>TRIP</small></div>
       </section>
 
@@ -782,7 +802,7 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
 
         <div className="place-results-head"><p><strong>{filtered.length}</strong>개의 장소</p><span>카드를 눌러 상세 정보를 확인하세요</span></div>
         <div className="places-grid">
-          {filtered.map(place => <PlaceCard key={place.id} place={place} onToggleVisited={() => setPlaces(current => current.map(item => item.id === place.id ? { ...item, visited: !item.visited } : item))} onEdit={() => setEditor(place)} onDelete={() => setDeleteTarget(place)} />)}
+          {filtered.map(place => <PlaceCard key={place.id} place={place} onCycleStatus={() => cycleVisitStatus(place)} onEdit={() => setEditor(place)} onDelete={() => setDeleteTarget(place)} />)}
           {filtered.length === 0 && <div className="empty-state"><span><Icon name="search" /></span><h3>검색 결과가 없어요</h3><p>다른 검색어나 필터를 사용해 보세요.</p></div>}
         </div>
       </section>
@@ -793,7 +813,7 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
   )
 }
 
-function PlaceCard({ place, onToggleVisited, onEdit, onDelete }) {
+function PlaceCard({ place, onCycleStatus, onEdit, onDelete }) {
   return (
     <article className="place-card">
       <div className={`place-visual ${place.category}`}>
@@ -802,11 +822,11 @@ function PlaceCard({ place, onToggleVisited, onEdit, onDelete }) {
         <div className="priority-flags" aria-label={`우선순위 ${place.priority}`}>{[1,2,3].map(level => <i key={level} className={level <= place.priority ? 'filled' : ''}>◆</i>)}</div>
       </div>
       <div className="place-body">
-        <div className="place-heading"><div><span className={`status-dot ${place.visited ? 'visited' : 'not-visited'}`}>{place.visited ? '다녀옴' : '못 다녀옴'}</span><h3>{place.name}</h3></div><button aria-label={`${place.name} 메뉴`}><Icon name="menu" size={18} /></button></div>
+        <div className="place-heading"><div><span className={`status-dot ${place.visitStatus}`}>{placeVisitLabels[place.visitStatus]}</span><h3>{place.name}</h3></div><button aria-label={`${place.name} 메뉴`}><Icon name="menu" size={18} /></button></div>
         <p>{place.description}</p>
         <div className="place-meta"><span><Icon name="clock" size={15} /> {place.meta}</span>{place.reservation && <span><Icon name="ticket" size={15} /> 예약 필요</span>}</div>
         <div className="place-actions">
-          <button className={`visited-toggle ${place.visited ? 'done' : ''}`} onClick={onToggleVisited} aria-label={place.visited ? '못 다녀옴으로 변경' : '다녀옴으로 체크'}><Icon name="check" size={16} /><span>{place.visited ? '다녀옴' : '방문 체크'}</span></button>
+          <button className={`visited-toggle ${place.visitStatus}`} onClick={onCycleStatus} aria-label={`${place.name} 방문 상태 변경`}><Icon name="check" size={16} /><span>{placeVisitLabels[place.visitStatus]}</span></button>
           <a className="map-button" href={place.mapUrl} target="_blank" rel="noreferrer"><Icon name="map" size={17} /> Google Maps <Icon name="external" size={13} /></a>
           <button onClick={onEdit} aria-label="수정"><Icon name="edit" size={17} /></button>
           <button onClick={onDelete} aria-label="삭제"><Icon name="trash" size={17} /></button>
@@ -817,7 +837,7 @@ function PlaceCard({ place, onToggleVisited, onEdit, onDelete }) {
 }
 
 function PlaceEditor({ place, onClose, onSave }) {
-  const [form, setForm] = useState({ name: place.name || '', category: place.category || 'attraction', description: place.description || '', mapUrl: place.mapUrl || '', priority: place.priority || 2, visited: Boolean(place.visited) })
+  const [form, setForm] = useState({ name: place.name || '', category: place.category || 'attraction', description: place.description || '', mapUrl: place.mapUrl || '', priority: place.priority || 2, visitStatus: normalizePlace(place).visitStatus })
   const update = (field, value) => setForm(current => ({ ...current, [field]: value }))
   const submit = (event) => { event.preventDefault(); if (form.name.trim()) onSave(form) }
   return (
@@ -827,7 +847,7 @@ function PlaceEditor({ place, onClose, onSave }) {
         <div className="form-grid">
           <label className="full"><span>장소명 <em>*</em></span><input autoFocus value={form.name} onChange={e => update('name', e.target.value)} placeholder="예: Sagrada Família" required /></label>
           <label><span>카테고리 <em>*</em></span><select value={form.category} onChange={e => update('category', e.target.value)}>{Object.entries(categoryLabels).filter(([id]) => id !== 'all').map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-          <label className="visited-field"><span>방문 여부</span><button type="button" className={form.visited ? 'active' : ''} onClick={() => update('visited', !form.visited)}><Icon name="check" size={16} /> {form.visited ? '다녀옴' : '못 다녀옴'}</button></label>
+          <label className="visited-field"><span>방문 상태</span><select value={form.visitStatus} onChange={e => update('visitStatus', e.target.value)}>{PLACE_VISIT_STATUSES.map(status => <option key={status} value={status}>{placeVisitLabels[status]}</option>)}</select></label>
           <label className="full"><span>메모</span><textarea value={form.description} onChange={e => update('description', e.target.value)} placeholder="방문 팁이나 기억할 내용을 적어두세요." rows="3" /></label>
           <label className="full"><span>Google Maps URL</span><div className="input-with-icon"><Icon name="map" size={17}/><input value={form.mapUrl} onChange={e => update('mapUrl', e.target.value)} placeholder="https://maps.app.goo.gl/..." /></div></label>
           <fieldset className="full"><legend>우선순위</legend><div className="priority-options">{[[1,'여유롭게'],[2,'추천'],[3,'꼭 가기']].map(([value,label]) => <button type="button" key={value} className={form.priority === value ? 'active' : ''} onClick={() => update('priority', value)}><span>{'◆'.repeat(value)}</span>{label}</button>)}</div></fieldset>
