@@ -3,6 +3,7 @@ import { loadLocalTrip, saveLocalTrip } from './lib/localStore.js'
 import { downloadOfflineTicket, getOfflineTicket, getOfflineTicketIds, openOfflineTicket, saveOfflineTicket } from './lib/offlineTickets.js'
 import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, uploadTicket } from './lib/supabase.js'
 import { usePwa } from './lib/usePwa.js'
+import { BATCH_CITY_SEED, BATCH_PLACE_SEED } from './placeBatch20260816.js'
 
 const iconPaths = {
   home: ['M3 10.8 12 3l9 7.8', 'M5 9.6V21h14V9.6', 'M9 21v-7h6v7'],
@@ -222,13 +223,26 @@ function normalizePlace(place) {
   }
 }
 
-const PLACE_DATA_VERSION = 1
+const PLACE_DATA_VERSION = 2
+
+function migrateCities(cities, dataVersion) {
+  const current = Array.isArray(cities) ? cities : []
+  if (Number(dataVersion) >= PLACE_DATA_VERSION) return current
+  const seen = new Set(current.map(city => city.id))
+  return [...current, ...BATCH_CITY_SEED.filter(city => !seen.has(city.id))]
+}
 
 function migratePlaces(places, dataVersion) {
   const normalized = (Array.isArray(places) ? places : []).map(normalizePlace)
   if (Number(dataVersion) >= PLACE_DATA_VERSION) return normalized
   const seen = new Set(normalized.map(place => `${place.city}::${place.name.trim().toLowerCase()}`))
-  const additions = LISBON_PLACE_SEED.filter(place => !seen.has(`${place.city}::${place.name.trim().toLowerCase()}`))
+  const additions = []
+  for (const place of [...LISBON_PLACE_SEED, ...BATCH_PLACE_SEED]) {
+    const key = `${place.city}::${place.name.trim().toLowerCase()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    additions.push(place)
+  }
   return [...normalized, ...additions.map(normalizePlace)]
 }
 
@@ -327,7 +341,7 @@ function App() {
   const cachedTrip = useMemo(() => loadLocalTrip(), [])
   const [view, setView] = useState('schedule')
   const [selectedCity, setSelectedCity] = useState('barcelona')
-  const [cities, setCities] = useState(() => cachedTrip?.cities || INITIAL_CITIES)
+  const [cities, setCities] = useState(() => migrateCities(cachedTrip?.cities || INITIAL_CITIES, cachedTrip?.placeDataVersion))
   const [places, setPlaces] = useState(() => migratePlaces(cachedTrip?.places || initialPlaces, cachedTrip?.placeDataVersion))
   const [events, setEvents] = useState(() => migrateScheduleEvents(cachedTrip?.events || INITIAL_EVENTS, cachedTrip?.scheduleDataVersion))
   const [tickets, setTickets] = useState(() => cachedTrip?.tickets || INITIAL_TICKETS)
@@ -365,7 +379,7 @@ function App() {
   }
 
   const restoreLocalData = (payload) => {
-    if (Array.isArray(payload?.cities)) setCities(payload.cities)
+    if (Array.isArray(payload?.cities)) setCities(migrateCities(payload.cities, payload.placeDataVersion))
     if (Array.isArray(payload?.places)) setPlaces(migratePlaces(payload.places, payload.placeDataVersion))
     if (Array.isArray(payload?.events)) setEvents(migrateScheduleEvents(payload.events, payload.scheduleDataVersion))
     if (Array.isArray(payload?.tickets)) setTickets(payload.tickets)
