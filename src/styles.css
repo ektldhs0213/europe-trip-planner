@@ -313,6 +313,7 @@ body { background: var(--cream); }
 .place-visual.restaurant,
 .place-visual.cafe,
 .place-visual.bar,
+.place-visual.accommodation,
 .place-visual.shopping {
   background: #e9ecf4;
   color: #4d5f89;

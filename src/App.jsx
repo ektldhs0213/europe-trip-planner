@@ -203,7 +203,7 @@ function migrateScheduleEvents(items, dataVersion) {
 }
 
 const categoryLabels = {
-  all: '전체', attraction: '관광지', restaurant: '맛집', cafe: '카페', bar: 'Bar', other: '기타',
+  all: '전체', attraction: '관광지', restaurant: '맛집', cafe: '카페', bar: 'Bar', accommodation: '숙소', other: '기타',
 }
 
 const PLACE_VISIT_STATUSES = ['tour-planned', 'tour-completed', 'visit-needed', 'visit-completed']
@@ -237,6 +237,7 @@ const BULK_CATEGORY_MAP = {
   '맛집': 'restaurant', restaurant: 'restaurant',
   '카페': 'cafe', cafe: 'cafe',
   bar: 'bar', '바': 'bar',
+  '숙소': 'accommodation', accommodation: 'accommodation', hotel: 'accommodation',
   '기타': 'other', other: 'other',
 }
 
@@ -754,7 +755,7 @@ function BulkPlaceImport({ cities, places, onClose, onImport }) {
   const parsed = useMemo(() => parseBulkPlaces(text, cities, places), [text, cities, places])
   const validRows = parsed.filter(row => !row.error)
   const errorRows = parsed.filter(row => row.error)
-  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="place-editor bulk-import-editor"><header><div><span className="eyebrow">BULK IMPORT</span><h2>장소 일괄 추가</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="bulk-import-body"><div className="bulk-format"><strong>한 줄에 장소 하나씩 입력하세요</strong><code>도시 / 장소명 / 카테고리 / 메모 / Google Maps URL</code><p>카테고리: 관광지, 맛집, 카페, Bar, 기타 · 엑셀의 5개 열을 그대로 붙여넣어도 됩니다.</p></div><label><span>붙여넣을 장소 목록</span><textarea autoFocus value={text} onChange={event => setText(event.target.value)} rows="9" placeholder={'Barcelona / Sagrada Família / 관광지 / 오전 예약 추천 / https://maps.app.goo.gl/example\nBarcelona / Bar Cañete / 맛집 / 타파스 / https://maps.google.com/example'} /></label>{text.trim() && <div className="bulk-preview"><div className="bulk-summary"><span className="valid"><Icon name="check" size={14} /> 추가 가능 {validRows.length}개</span><span className={errorRows.length ? 'invalid' : ''}>확인 필요 {errorRows.length}개</span></div>{validRows.slice(0, 4).map(row => <div className="preview-row" key={row.lineNumber}><span>{row.city.name}</span><strong>{row.name}</strong><small>{categoryLabels[row.category]}</small></div>)}{validRows.length > 4 && <p className="more-rows">외 {validRows.length - 4}개</p>}{errorRows.slice(0, 4).map(row => <div className="error-row" key={row.lineNumber}><strong>{row.lineNumber}행</strong><span>{row.error}</span></div>)}</div>}</div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" disabled={!validRows.length} onClick={() => onImport(validRows)}><Icon name="upload" size={17} /> {validRows.length}개 장소 추가</button></footer></div></div>
+  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="place-editor bulk-import-editor"><header><div><span className="eyebrow">BULK IMPORT</span><h2>장소 일괄 추가</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="bulk-import-body"><div className="bulk-format"><strong>한 줄에 장소 하나씩 입력하세요</strong><code>도시 / 장소명 / 카테고리 / 메모 / Google Maps URL</code><p>카테고리: 관광지, 맛집, 카페, Bar, 숙소, 기타 · 엑셀의 5개 열을 그대로 붙여넣어도 됩니다.</p></div><label><span>붙여넣을 장소 목록</span><textarea autoFocus value={text} onChange={event => setText(event.target.value)} rows="9" placeholder={'Barcelona / Sagrada Família / 관광지 / 오전 예약 추천 / https://maps.app.goo.gl/example\nBarcelona / Bar Cañete / 맛집 / 타파스 / https://maps.google.com/example'} /></label>{text.trim() && <div className="bulk-preview"><div className="bulk-summary"><span className="valid"><Icon name="check" size={14} /> 추가 가능 {validRows.length}개</span><span className={errorRows.length ? 'invalid' : ''}>확인 필요 {errorRows.length}개</span></div>{validRows.slice(0, 4).map(row => <div className="preview-row" key={row.lineNumber}><span>{row.city.name}</span><strong>{row.name}</strong><small>{categoryLabels[row.category]}</small></div>)}{validRows.length > 4 && <p className="more-rows">외 {validRows.length - 4}개</p>}{errorRows.slice(0, 4).map(row => <div className="error-row" key={row.lineNumber}><strong>{row.lineNumber}행</strong><span>{row.error}</span></div>)}</div>}</div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" disabled={!validRows.length} onClick={() => onImport(validRows)}><Icon name="upload" size={17} /> {validRows.length}개 장소 추가</button></footer></div></div>
 }
 
 function CityEditor({ onClose, onSave }) {
