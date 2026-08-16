@@ -61,6 +61,38 @@ const INITIAL_CITIES = [
   { id: 'helsinki', name: 'Helsinki', ko: '헬싱키', country: 'Finland', flag: '🇫🇮', dates: '10. 5 — 10. 8', nights: '3박', saved: 9, tone: 'berry' },
 ]
 
+const LISBON_PLACE_SEED = [
+  ['rossio-square', '호시우 광장', 'attraction', '리스본 중심광장', 'Rossio+Square+Lisbon', 'tour-planned'],
+  ['sao-domingos', '상도밍고 성당', 'attraction', '화재 흔적 성당', 'Igreja+de+Sao+Domingos+Lisbon', 'tour-planned'],
+  ['alfama', '알파마 지구', 'attraction', '최고령 구시가지', 'Alfama+Lisbon', 'tour-planned'],
+  ['portas-do-sol', '포르타스 두 솔 전망대', 'attraction', '알파마 전망명소', 'Miradouro+das+Portas+do+Sol+Lisbon', 'tour-planned'],
+  ['santa-luzia', '산타루치아 전망대', 'attraction', '타일장식 전망대', 'Miradouro+de+Santa+Luzia+Lisbon', 'tour-planned'],
+  ['cathedral', '리스본 대성당', 'attraction', '리스본 대표성당', 'Lisbon+Cathedral', 'tour-planned'],
+  ['saramago-foundation', '주제 사라마구 재단', 'attraction', '노벨문학상 작가', 'Fundacao+Jose+Saramago+Lisbon', 'tour-planned'],
+  ['conceicao-velha', '콘세이샹 벨라 성당', 'attraction', '마누엘 양식성당', 'Igreja+da+Conceicao+Velha+Lisbon', 'tour-planned'],
+  ['comercio-square', '코메르시우 광장', 'attraction', '테주강 대표광장', 'Praca+do+Comercio+Lisbon', 'tour-planned'],
+  ['time-out-market', '타임아웃 마켓', 'restaurant', '포르투갈 음식', 'Time+Out+Market+Lisboa', 'tour-planned'],
+  ['camoes-square', '카몽이스 광장', 'attraction', '시아두 중심광장', 'Praca+Luis+de+Camoes+Lisbon', 'tour-planned'],
+  ['bertrand', '베르트랑 서점', 'other', '세계 최고령 서점', 'Livraria+Bertrand+Chiado+Lisbon', 'tour-planned'],
+  ['a-brasileira', '아 브라질레이라', 'cafe', '비카·파스텔', 'A+Brasileira+Lisbon', 'tour-planned'],
+  ['carmo-convent', '카르무 수도원', 'attraction', '대지진 흔적', 'Carmo+Convent+Lisbon', 'tour-planned'],
+  ['sao-pedro-viewpoint', '상페드로 알칸타라 전망대', 'attraction', '대표 야경명소', 'Miradouro+de+Sao+Pedro+de+Alcantara+Lisbon', 'tour-planned'],
+  ['jeronimos', '제로니무스 수도원', 'attraction', '마누엘 양식걸작', 'Jeronimos+Monastery+Lisbon', 'visit-needed'],
+  ['belem-tower', '벨렝탑', 'attraction', '대항해시대 상징', 'Belem+Tower+Lisbon', 'visit-needed'],
+  ['discoveries-monument', '발견기념비', 'attraction', '대항해시대 기념', 'Padrao+dos+Descobrimentos+Lisbon', 'visit-needed'],
+  ['sao-jorge-castle', '상조르즈 성', 'attraction', '리스본 성곽전망', 'Castelo+de+Sao+Jorge+Lisbon', 'visit-needed'],
+  ['santa-justa-lift', '산타주스타 엘리베이터', 'attraction', '철제 전망승강기', 'Santa+Justa+Lift+Lisbon', 'visit-needed'],
+  ['pasteis-de-belem', '파스테이스 드 벨렝', 'restaurant', '에그타르트', 'Pasteis+de+Belem+Lisbon', 'visit-needed'],
+  ['o-velho-eurico', '오 벨류 에우리쿠', 'restaurant', '바칼라우·문어요리', 'O+Velho+Eurico+Lisbon', 'visit-needed'],
+  ['bifanas-afonso', '아스 비파나스 두 아폰수', 'restaurant', '비파나', 'As+Bifanas+do+Afonso+Lisbon', 'visit-needed'],
+  ['manteigaria', '만테이가리아', 'cafe', '에그타르트·커피', 'Manteigaria+Rua+do+Loreto+Lisbon', 'visit-needed'],
+  ['red-frog', '레드 프로그', 'bar', '시그니처 칵테일', 'Red+Frog+Lisbon', 'visit-needed'],
+].map(([slug, name, category, description, query, visitStatus]) => ({
+  id: `lisbon-${slug}`, city: 'lisbon', name, category, description,
+  mapUrl: `https://www.google.com/maps/search/?api=1&query=${query}`,
+  priority: 2, visitStatus, visited: false, reservation: false, duration: '', visitDate: '', meta: '',
+}))
+
 const initialPlaces = [
   { id: 1, city: 'barcelona', name: 'Sagrada Família', category: 'attraction', description: '가우디의 미완성 대성당. 오전 첫 타임으로 예약하기.', priority: 3, visited: false, mapUrl: 'https://maps.google.com/?q=Sagrada+Familia', reservation: true, duration: '2시간', visitDate: '2026-09-16', meta: '9월 16일 09:00' },
   { id: 2, city: 'barcelona', name: 'Bodega Biarritz 1881', category: 'restaurant', description: '고딕 지구의 작은 타파스 바. 혼자 방문하기 좋음.', priority: 3, visited: false, mapUrl: 'https://maps.google.com/?q=Bodega+Biarritz+1881', reservation: false, duration: '1.5시간', visitDate: '', meta: '타파스 · €€' },
@@ -68,6 +100,7 @@ const initialPlaces = [
   { id: 4, city: 'barcelona', name: 'Nomad Coffee Lab', category: 'cafe', description: '엘 보른 산책 중 들를 스페셜티 커피 로스터리.', priority: 2, visited: false, mapUrl: 'https://maps.google.com/?q=Nomad+Coffee+Lab+Barcelona', reservation: false, duration: '1시간', visitDate: '', meta: '커피 · €' },
   { id: 5, city: 'barcelona', name: 'La Boqueria', category: 'other', description: '아침 일찍 방문해 시장 구경과 간단한 식사.', priority: 1, visited: false, mapUrl: 'https://maps.google.com/?q=La+Boqueria', reservation: false, duration: '1시간', visitDate: '', meta: '마켓 · 오전 추천' },
   { id: 6, city: 'barcelona', name: 'Paradiso', category: 'bar', description: '숨겨진 입구로 들어가는 칵테일 바.', priority: 2, visited: true, mapUrl: 'https://maps.google.com/?q=Paradiso+Barcelona', reservation: false, duration: '2시간', visitDate: '2026-09-15', meta: '칵테일 · €€€' },
+  ...LISBON_PLACE_SEED,
 ]
 
 const INITIAL_TICKETS = [
@@ -189,6 +222,16 @@ function normalizePlace(place) {
   }
 }
 
+const PLACE_DATA_VERSION = 1
+
+function migratePlaces(places, dataVersion) {
+  const normalized = (Array.isArray(places) ? places : []).map(normalizePlace)
+  if (Number(dataVersion) >= PLACE_DATA_VERSION) return normalized
+  const seen = new Set(normalized.map(place => `${place.city}::${place.name.trim().toLowerCase()}`))
+  const additions = LISBON_PLACE_SEED.filter(place => !seen.has(`${place.city}::${place.name.trim().toLowerCase()}`))
+  return [...normalized, ...additions.map(normalizePlace)]
+}
+
 const BULK_CATEGORY_MAP = {
   '관광지': 'attraction', attraction: 'attraction',
   '맛집': 'restaurant', restaurant: 'restaurant',
@@ -284,7 +327,7 @@ function App() {
   const [view, setView] = useState('schedule')
   const [selectedCity, setSelectedCity] = useState('barcelona')
   const [cities, setCities] = useState(() => cachedTrip?.cities || INITIAL_CITIES)
-  const [places, setPlaces] = useState(() => (cachedTrip?.places || initialPlaces).map(normalizePlace))
+  const [places, setPlaces] = useState(() => migratePlaces(cachedTrip?.places || initialPlaces, cachedTrip?.placeDataVersion))
   const [events, setEvents] = useState(() => migrateScheduleEvents(cachedTrip?.events || INITIAL_EVENTS, cachedTrip?.scheduleDataVersion))
   const [tickets, setTickets] = useState(() => cachedTrip?.tickets || INITIAL_TICKETS)
   const [prepItems, setPrepItems] = useState(() => normalizePrepItems(cachedTrip))
@@ -292,7 +335,7 @@ function App() {
   const [toast, setToast] = useState('')
 
   useEffect(() => {
-    saveLocalTrip({ cities, places, events, tickets, prepItems, scheduleDataVersion: SCHEDULE_DATA_VERSION })
+    saveLocalTrip({ cities, places, events, tickets, prepItems, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION })
   }, [cities, places, events, tickets, prepItems])
 
   useEffect(() => {
@@ -322,7 +365,7 @@ function App() {
 
   const restoreLocalData = (payload) => {
     if (Array.isArray(payload?.cities)) setCities(payload.cities)
-    if (Array.isArray(payload?.places)) setPlaces(payload.places.map(normalizePlace))
+    if (Array.isArray(payload?.places)) setPlaces(migratePlaces(payload.places, payload.placeDataVersion))
     if (Array.isArray(payload?.events)) setEvents(migrateScheduleEvents(payload.events, payload.scheduleDataVersion))
     if (Array.isArray(payload?.tickets)) setTickets(payload.tickets)
     if (Array.isArray(payload?.prepItems) || Array.isArray(payload?.checks)) setPrepItems(normalizePrepItems(payload))
@@ -1048,7 +1091,7 @@ function CloudBackupPanel({ session, isOnline, payload, onRestore, notify }) {
   }
 
   const uploadBackup = () => run('backup', async () => {
-    const result = await backupTrip(payload)
+    const result = await backupTrip({ ...payload, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION })
     setLastBackup(result.updated_at)
     notify('현재 데이터를 DB에 백업했어요.')
   })
