@@ -860,15 +860,10 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
 function PlaceCard({ place, onCycleStatus, onEdit, onDelete }) {
   return (
     <article className="place-card">
-      <div className={`place-visual ${place.category}`}>
-        <span>{categoryLabels[place.category]}</span>
-        <div className="place-letter">{place.name.slice(0, 1)}</div>
-        <div className="priority-flags" aria-label={`우선순위 ${place.priority}`}>{[1,2,3].map(level => <i key={level} className={level <= place.priority ? 'filled' : ''}>◆</i>)}</div>
-      </div>
       <div className="place-body">
-        <div className="place-heading"><div><span className={`status-dot ${place.visitStatus}`}>{placeVisitLabels[place.visitStatus]}</span><h3>{place.name}</h3></div><button aria-label={`${place.name} 메뉴`}><Icon name="menu" size={18} /></button></div>
+        <div className="place-heading"><div><div className="place-labels"><span className="place-category">{categoryLabels[place.category]}</span><span className={`status-dot ${place.visitStatus}`}>{placeVisitLabels[place.visitStatus]}</span></div><h3>{place.name}</h3></div></div>
         <p>{place.description}</p>
-        <div className="place-meta"><span><Icon name="clock" size={15} /> {place.meta}</span>{place.reservation && <span><Icon name="ticket" size={15} /> 예약 필요</span>}</div>
+        {(place.meta || place.reservation) && <div className="place-meta">{place.meta && <span><Icon name="clock" size={13} /> {place.meta}</span>}{place.reservation && <span><Icon name="ticket" size={13} /> 예약 필요</span>}</div>}
         <div className="place-actions">
           <button className={`visited-toggle ${place.visitStatus}`} onClick={onCycleStatus} aria-label={`${place.name} 방문 상태 변경`}><Icon name="check" size={16} /><span>{placeVisitLabels[place.visitStatus]}</span></button>
           <a className="map-button" href={place.mapUrl} target="_blank" rel="noreferrer"><Icon name="map" size={17} /> Google Maps <Icon name="external" size={13} /></a>
