@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadLocalTrip, saveLocalTrip } from './lib/localStore.js'
 import { downloadOfflineTicket, getOfflineTicket, getOfflineTicketIds, openOfflineTicket, saveOfflineTicket } from './lib/offlineTickets.js'
 import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, uploadTicket } from './lib/supabase.js'
@@ -348,8 +348,15 @@ function App() {
   const [prepItems, setPrepItems] = useState(() => normalizePrepItems(cachedTrip))
   const [session, setSession] = useState(null)
   const [toast, setToast] = useState('')
+  const initialLocalSavedAtRef = useRef(cachedTrip?.savedAt || null)
+  const initialLocalSaveSkippedRef = useRef(false)
+  const autoSyncUserRef = useRef('')
 
   useEffect(() => {
+    if (!initialLocalSaveSkippedRef.current) {
+      initialLocalSaveSkippedRef.current = true
+      return
+    }
     saveLocalTrip({ cities, places, events, tickets, prepItems, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION })
   }, [cities, places, events, tickets, prepItems])
 
@@ -385,6 +392,21 @@ function App() {
     if (Array.isArray(payload?.tickets)) setTickets(payload.tickets)
     if (Array.isArray(payload?.prepItems) || Array.isArray(payload?.checks)) setPrepItems(normalizePrepItems(payload))
   }
+
+  useEffect(() => {
+    if (!session?.user?.id || !pwa.isOnline || autoSyncUserRef.current === session.user.id) return
+    autoSyncUserRef.current = session.user.id
+    const localSavedAt = initialLocalSavedAtRef.current
+
+    restoreTrip().then(result => {
+      const remoteTime = Date.parse(result.updated_at || '')
+      const localTime = Date.parse(localSavedAt || '')
+      if (!Number.isFinite(remoteTime) || (Number.isFinite(localTime) && remoteTime <= localTime)) return
+      restoreLocalData(result.payload)
+      initialLocalSavedAtRef.current = result.updated_at
+      notify('더 최신인 DB 백업을 이 기기에 자동으로 반영했어요.')
+    }).catch(() => {})
+  }, [session, pwa.isOnline])
 
   return (
     <div className="app-shell">
@@ -1089,6 +1111,7 @@ const EXCHANGE_RATE_CACHE_KEY = 'europe-trip-planner:eur-krw-rate:v1'
 
 function ExchangeRatePanel({ isOnline }) {
   const [amount, setAmount] = useState('100')
+  const [direction, setDirection] = useState('eur-to-krw')
   const [rate, setRate] = useState('')
   const [rateDate, setRateDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1128,12 +1151,26 @@ function ExchangeRatePanel({ isOnline }) {
     loadRate()
   }, [isOnline])
 
-  const euroAmount = Number(String(amount).replace(/,/g, '')) || 0
+  const inputAmount = Number(String(amount).replace(/,/g, '')) || 0
   const wonRate = Number(String(rate).replace(/,/g, '')) || 0
-  const converted = Math.round(euroAmount * wonRate)
+  const converted = direction === 'eur-to-krw'
+    ? Math.round(inputAmount * wonRate)
+    : wonRate ? inputAmount / wonRate : 0
+  const inputLabel = direction === 'eur-to-krw' ? '유로 금액' : '한화 금액'
+  const inputUnit = direction === 'eur-to-krw' ? 'EUR' : 'KRW'
+  const resultLabel = direction === 'eur-to-krw' ? '한화 예상 금액' : '유로 예상 금액'
+  const resultUnit = direction === 'eur-to-krw' ? '원' : 'EUR'
+  const formattedResult = direction === 'eur-to-krw'
+    ? Math.round(converted).toLocaleString('ko-KR')
+    : converted.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const formattedDate = rateDate ? new Date(`${rateDate}T00:00:00`).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '조회 전'
 
-  return <section className="exchange-panel"><div className="exchange-head"><div><span className="exchange-icon"><Icon name="sparkle" size={19} /></span><div><strong>유로 환율 계산기</strong><p>그리스 · 스페인 · 포르투갈 · 이탈리아 · 핀란드 공통 통화</p></div></div><button type="button" onClick={loadRate} disabled={loading || !isOnline}>{loading ? '조회 중…' : '환율 새로고침'}</button></div><div className="euro-country-list"><span>🇬🇷 그리스</span><span>🇪🇸 스페인</span><span>🇵🇹 포르투갈</span><span>🇮🇹 이탈리아</span><span>🇫🇮 핀란드</span></div><div className="exchange-calculator"><label><span>유로 금액</span><div><input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} aria-label="유로 금액" /><b>EUR</b></div></label><i>→</i><label><span>한화 예상 금액</span><div className="won-result"><strong>{converted.toLocaleString('ko-KR')}</strong><b>원</b></div></label></div><div className="exchange-rate-row"><label><span>1 EUR 기준 환율</span><div><input inputMode="decimal" value={rate} onChange={event => setRate(event.target.value)} aria-label="유로 원 환율" /><b>KRW</b></div></label><p><strong>{formattedDate}</strong> ECB 기준 환율 · 실제 환전 및 카드 결제 금액은 수수료에 따라 달라질 수 있어요.</p></div>{error && <p className="exchange-error">{error}</p>}</section>
+  const swapDirection = () => {
+    setAmount(converted ? (direction === 'eur-to-krw' ? String(Math.round(converted)) : converted.toFixed(2)) : '')
+    setDirection(current => current === 'eur-to-krw' ? 'krw-to-eur' : 'eur-to-krw')
+  }
+
+  return <section className="exchange-panel"><div className="exchange-head"><div><span className="exchange-icon"><Icon name="sparkle" size={19} /></span><div><strong>유로 환율 계산기</strong><p>유로와 원화를 양방향으로 계산할 수 있어요.</p></div></div><button type="button" onClick={loadRate} disabled={loading || !isOnline}>{loading ? '조회 중…' : '환율 새로고침'}</button></div><div className="exchange-calculator"><label><span>{inputLabel}</span><div><input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} aria-label={inputLabel} /><b>{inputUnit}</b></div></label><button type="button" className="exchange-swap" onClick={swapDirection} aria-label="환율 계산 방향 바꾸기">↔</button><label><span>{resultLabel}</span><div className="won-result"><strong>{formattedResult}</strong><b>{resultUnit}</b></div></label></div><div className="exchange-rate-row"><label><span>1 EUR 기준 환율</span><div><input inputMode="decimal" value={rate} onChange={event => setRate(event.target.value)} aria-label="유로 원 환율" /><b>KRW</b></div></label><p><strong>{formattedDate}</strong> ECB 기준 환율 · 실제 환전 및 카드 결제 금액은 수수료에 따라 달라질 수 있어요.</p></div>{error && <p className="exchange-error">{error}</p>}</section>
 }
 
 function Prep({ cities, places, events, tickets, prepItems, setPrepItems, session, pwa, onRestore, notify }) {
