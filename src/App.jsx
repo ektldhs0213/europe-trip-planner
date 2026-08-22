@@ -833,7 +833,10 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
   const [sort, setSort] = useState('priority')
   const [editor, setEditor] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [selectedPlaceIds, setSelectedPlaceIds] = useState([])
   const cityPlaces = places.filter(place => place.city === city.id)
+
+  useEffect(() => setSelectedPlaceIds([]), [city.id])
 
   const filtered = useMemo(() => {
     return cityPlaces.filter(place => (category === 'all' || place.category === category) && place.name.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : b.priority - a.priority)
@@ -857,10 +860,26 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
     notify('장소를 삭제했어요.')
   }
 
-  const cycleVisitStatus = (place) => {
-    const currentIndex = PLACE_VISIT_STATUSES.indexOf(place.visitStatus)
-    const visitStatus = PLACE_VISIT_STATUSES[(currentIndex + 1) % PLACE_VISIT_STATUSES.length]
-    setPlaces(current => current.map(item => item.id === place.id ? { ...item, visitStatus, visited: visitStatus === 'visit-completed' || visitStatus === 'tour-completed' } : item))
+  const togglePlaceSelection = (placeId) => {
+    setSelectedPlaceIds(current => current.includes(placeId) ? current.filter(id => id !== placeId) : [...current, placeId])
+  }
+
+  const toggleVisibleSelection = () => {
+    const visibleIds = filtered.map(place => place.id)
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedPlaceIds.includes(id))
+    setSelectedPlaceIds(current => allVisibleSelected
+      ? current.filter(id => !visibleIds.includes(id))
+      : [...new Set([...current, ...visibleIds])])
+  }
+
+  const completeSelectedPlaces = () => {
+    if (!selectedPlaceIds.length) return
+    const selectedIds = new Set(selectedPlaceIds)
+    setPlaces(current => current.map(place => selectedIds.has(place.id)
+      ? { ...place, visitStatus: 'visit-completed', visited: true }
+      : place))
+    notify(`${selectedPlaceIds.length}개 장소를 방문 완료로 변경했어요.`)
+    setSelectedPlaceIds([])
   }
 
   return (
@@ -881,8 +900,13 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
         </div>
 
         <div className="place-results-head"><p><strong>{filtered.length}</strong>개의 장소</p><span>카드를 눌러 상세 정보를 확인하세요</span></div>
+        <div className="place-selection-bar">
+          <label><input type="checkbox" checked={filtered.length > 0 && filtered.every(place => selectedPlaceIds.includes(place.id))} onChange={toggleVisibleSelection} /><span><Icon name="check" size={13} /></span> 현재 목록 전체 선택</label>
+          <strong>{selectedPlaceIds.length}개 선택</strong>
+          <button type="button" disabled={!selectedPlaceIds.length} onClick={completeSelectedPlaces}><Icon name="check" size={15} /> 선택 장소 방문 완료</button>
+        </div>
         <div className="places-grid">
-          {filtered.map(place => <PlaceCard key={place.id} place={place} onCycleStatus={() => cycleVisitStatus(place)} onEdit={() => setEditor(place)} onDelete={() => setDeleteTarget(place)} />)}
+          {filtered.map(place => <PlaceCard key={place.id} place={place} selected={selectedPlaceIds.includes(place.id)} onToggleSelected={() => togglePlaceSelection(place.id)} onEdit={() => setEditor(place)} onDelete={() => setDeleteTarget(place)} />)}
           {filtered.length === 0 && <div className="empty-state"><span><Icon name="search" /></span><h3>검색 결과가 없어요</h3><p>다른 검색어나 필터를 사용해 보세요.</p></div>}
         </div>
       </section>
@@ -893,15 +917,14 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
   )
 }
 
-function PlaceCard({ place, onCycleStatus, onEdit, onDelete }) {
+function PlaceCard({ place, selected, onToggleSelected, onEdit, onDelete }) {
   return (
-    <article className="place-card">
+    <article className={`place-card ${selected ? 'selected' : ''}`}>
       <div className="place-body">
-        <div className="place-heading"><div><div className="place-labels"><span className="place-category">{categoryLabels[place.category]}</span><span className={`status-dot ${place.visitStatus}`}>{placeVisitLabels[place.visitStatus]}</span></div><h3>{place.name}</h3></div></div>
+        <div className="place-heading"><div><div className="place-labels"><span className="place-category">{categoryLabels[place.category]}</span><span className={`status-dot ${place.visitStatus}`}>{placeVisitLabels[place.visitStatus]}</span></div><h3>{place.name}</h3></div><label className="place-select"><input type="checkbox" checked={selected} onChange={onToggleSelected} aria-label={`${place.name} 선택`} /><span><Icon name="check" size={13} /></span></label></div>
         <p>{place.description}</p>
         {(place.meta || place.reservation) && <div className="place-meta">{place.meta && <span><Icon name="clock" size={13} /> {place.meta}</span>}{place.reservation && <span><Icon name="ticket" size={13} /> 예약 필요</span>}</div>}
         <div className="place-actions">
-          <button className={`visited-toggle ${place.visitStatus}`} onClick={onCycleStatus} aria-label={`${place.name} 방문 상태 변경`}><Icon name="check" size={16} /><span>{placeVisitLabels[place.visitStatus]}</span></button>
           <a className="map-button" href={place.mapUrl} target="_blank" rel="noreferrer"><Icon name="map" size={17} /> Google Maps <Icon name="external" size={13} /></a>
           <button onClick={onEdit} aria-label="수정"><Icon name="edit" size={17} /></button>
           <button onClick={onDelete} aria-label="삭제"><Icon name="trash" size={17} /></button>

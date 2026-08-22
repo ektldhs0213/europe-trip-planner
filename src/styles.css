@@ -481,7 +481,18 @@ body { background: var(--cream); }
 /* Final compact place-card overrides. */
 .places-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .place-card { min-height: 152px; display: block; grid-template-columns: none; border-radius: 13px; }
+.place-card.selected { border-color: #7590bd; box-shadow: 0 0 0 2px rgba(92,118,166,.14); }
 .place-body { min-height: 152px; padding: 13px; }
+.place-select { flex: 0 0 auto; cursor: pointer; }
+.place-select input, .place-selection-bar input { position: absolute; opacity: 0; pointer-events: none; }
+.place-select span, .place-selection-bar label > span { width: 23px; height: 23px; display: grid; place-items: center; border: 1px solid #cbd1dc; border-radius: 7px; background: #fff; color: transparent; transition: .15s ease; }
+.place-select input:checked + span, .place-selection-bar input:checked + span { border-color: #5a73a2; background: #5a73a2; color: #fff; }
+.place-selection-bar { min-height: 48px; margin: 0 0 11px; padding: 7px 9px 7px 12px; border: 1px solid #d9dde6; border-radius: 11px; background: #f7f8fb; display: flex; align-items: center; gap: 12px; }
+.place-selection-bar label { display: flex; align-items: center; gap: 7px; color: #596276; font-size: 8px; font-weight: 750; cursor: pointer; }
+.place-selection-bar label > span { width: 20px; height: 20px; border-radius: 6px; }
+.place-selection-bar > strong { margin-left: auto; color: #5a6680; font-size: 8px; }
+.place-selection-bar > button { min-height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: #526b9a; color: #fff; display: inline-flex; align-items: center; gap: 5px; font-size: 8px; font-weight: 800; cursor: pointer; }
+.place-selection-bar > button:disabled { opacity: .45; cursor: default; }
 .place-labels { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .place-category { padding: 3px 6px; border-radius: 999px; background: #e9ecf4; color: #4d5f89; font-size: 7px; font-weight: 800; }
 .place-heading h3 { margin-top: 7px; font-size: 12px; }
@@ -499,4 +510,7 @@ body { background: var(--cream); }
   .places-grid { grid-template-columns: 1fr; gap: 8px; }
   .place-card, .place-body { min-height: 142px; }
   .place-body { padding: 12px; }
+  .place-selection-bar { position: sticky; top: 103px; z-index: 12; flex-wrap: wrap; gap: 7px; }
+  .place-selection-bar > strong { margin-left: 0; }
+  .place-selection-bar > button { margin-left: auto; }
 }
