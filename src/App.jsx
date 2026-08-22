@@ -988,19 +988,44 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
     const match = String(ticket.file_name || '').match(/_(\d{2})(\d{2})(?:_|\.|$)/)
     return match ? `2026-${match[1]}-${match[2]}` : ''
   }
+  const ticketTypes = [
+    { id: 'transport', label: '항공 · 교통' },
+    { id: 'tour', label: '투어' },
+    { id: 'visit', label: '방문' },
+  ]
+  const getTicketType = (ticket) => {
+    const value = `${ticket.title || ''} ${ticket.file_name || ''}`.toLowerCase()
+    if (/항공|전자항공권|기차|교통|flight|train|rail/.test(value)) return 'transport'
+    if (/투어|tour|알함브라/.test(value)) return 'tour'
+    return 'visit'
+  }
   const ticketGroups = useMemo(() => {
     const groups = new Map()
     tickets.forEach(ticket => {
       const cityValue = getTicketCity(ticket).toLowerCase()
       const matchedCity = cities.find(city => [city.id, city.name, city.ko].some(value => String(value || '').toLowerCase() === cityValue))
       const matchedCountry = COUNTRY_OPTIONS.find(country => country.name.toLowerCase() === cityValue || country.ko === ticket.city)
-      const country = matchedCity?.country || matchedCountry?.name || '기타'
+      const city = matchedCity?.ko || matchedCountry?.ko || getTicketCity(ticket) || '기타'
       const flag = matchedCity?.flag || matchedCountry?.flag || '🌍'
-      if (!groups.has(country)) groups.set(country, { country, flag, tickets: [] })
-      groups.get(country).tickets.push(ticket)
+      if (!groups.has(city)) groups.set(city, { city, flag, tickets: [] })
+      groups.get(city).tickets.push(ticket)
     })
-    return [...groups.values()].sort((a, b) => a.country === '기타' ? 1 : b.country === '기타' ? -1 : a.country.localeCompare(b.country))
+    return [...groups.values()].sort((a, b) => {
+      const aIndex = cities.findIndex(city => city.ko === a.city)
+      const bIndex = cities.findIndex(city => city.ko === b.city)
+      if (aIndex >= 0 && bIndex >= 0) return aIndex - bIndex
+      if (aIndex >= 0) return -1
+      if (bIndex >= 0) return 1
+      return a.city.localeCompare(b.city, 'ko')
+    })
   }, [tickets, cities])
+
+  const renderTicketCard = (item) => {
+    const ticketDate = getTicketDate(item)
+    const date = ticketDate ? new Date(`${ticketDate}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
+    const isOfflineReady = offlineTicketIds.includes(String(item.id))
+    return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={16} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
+  }
 
   return (
     <div className="page">
@@ -1010,13 +1035,12 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
         <div><strong>{canUseCloud ? `${session.user.email} 계정에 안전하게 저장됩니다` : '클라우드 연결이 필요해요'}</strong><p>{canUseCloud ? '파일은 비공개 Storage에 저장되며 5분 동안 유효한 링크로만 열립니다.' : '준비 메뉴에서 Supabase를 연결하고 이메일로 로그인해 주세요.'}</p></div>
       </div>
       <div className="ticket-country-list">{ticketGroups.map(group => (
-        <details className="ticket-country-group" key={group.country}>
-          <summary><span><b>{group.flag}</b><strong>{group.country}</strong></span><span>{group.tickets.length}개 <Icon name="chevron" size={15} /></span></summary>
-          <div className="ticket-grid">{group.tickets.map(item => {
-            const ticketDate = getTicketDate(item)
-            const date = ticketDate ? new Date(`${ticketDate}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
-            const isOfflineReady = offlineTicketIds.includes(String(item.id))
-            return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={17} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
+        <details className="ticket-country-group" key={group.city}>
+          <summary><span><b>{group.flag}</b><strong>{group.city}</strong></span><span>{group.tickets.length}개 <Icon name="chevron" size={15} /></span></summary>
+          <div className="ticket-type-sections">{ticketTypes.map(type => {
+            const items = group.tickets.filter(ticket => getTicketType(ticket) === type.id)
+            if (!items.length) return null
+            return <section className={`ticket-type-section ${type.id}`} key={type.id}><header><strong>{type.label}</strong><span>{items.length}개</span></header><div className="ticket-grid">{items.map(renderTicketCard)}</div></section>
           })}</div>
         </details>
       ))}</div>
