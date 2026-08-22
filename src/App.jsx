@@ -981,15 +981,17 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
   }
 
   const canUseCloud = isSupabaseConfigured && session && isOnline
+  const getTicketCity = (ticket) => String(ticket.city || '').trim().replace(/[ㄱ-ㅎㅏ-ㅣ]+$/g, '')
   const getTicketDate = (ticket) => {
     if (ticket.event_date) return ticket.event_date
+    if (String(ticket.file_name || '').includes('전자항공권_리스본')) return '2026-09-02'
     const match = String(ticket.file_name || '').match(/_(\d{2})(\d{2})(?:_|\.|$)/)
     return match ? `2026-${match[1]}-${match[2]}` : ''
   }
   const ticketGroups = useMemo(() => {
     const groups = new Map()
     tickets.forEach(ticket => {
-      const cityValue = String(ticket.city || '').trim().toLowerCase()
+      const cityValue = getTicketCity(ticket).toLowerCase()
       const matchedCity = cities.find(city => [city.id, city.name, city.ko].some(value => String(value || '').toLowerCase() === cityValue))
       const matchedCountry = COUNTRY_OPTIONS.find(country => country.name.toLowerCase() === cityValue || country.ko === ticket.city)
       const country = matchedCity?.country || matchedCountry?.name || '기타'
@@ -1014,7 +1016,7 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
             const ticketDate = getTicketDate(item)
             const date = ticketDate ? new Date(`${ticketDate}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
             const isOfflineReady = offlineTicketIds.includes(String(item.id))
-            return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={17} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{item.city || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
+            return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={17} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
           })}</div>
         </details>
       ))}</div>
