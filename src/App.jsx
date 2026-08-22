@@ -830,7 +830,7 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
   const city = cities.find(item => item.id === cityId) || cities[0]
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState('priority')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [editor, setEditor] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [selectedPlaceIds, setSelectedPlaceIds] = useState([])
@@ -839,8 +839,15 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
   useEffect(() => setSelectedPlaceIds([]), [city.id])
 
   const filtered = useMemo(() => {
-    return cityPlaces.filter(place => (category === 'all' || place.category === category) && place.name.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : b.priority - a.priority)
-  }, [cityPlaces, category, query, sort])
+    return cityPlaces.filter(place => {
+      const categoryMatches = category === 'all' || place.category === category
+      const queryMatches = place.name.toLowerCase().includes(query.toLowerCase())
+      const statusMatches = statusFilter === 'all'
+        || (statusFilter === 'completed' && place.visitStatus === 'visit-completed')
+        || (statusFilter === 'other' && place.visitStatus !== 'visit-completed')
+      return categoryMatches && queryMatches && statusMatches
+    })
+  }, [cityPlaces, category, query, statusFilter])
 
   const savePlace = (form) => {
     const normalizedForm = { ...form, visited: form.visitStatus === 'visit-completed' || form.visitStatus === 'tour-completed' }
@@ -896,7 +903,7 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
         <div className="category-tabs" role="tablist">{Object.entries(categoryLabels).map(([id, label]) => <button key={id} className={category === id ? 'active' : ''} onClick={() => setCategory(id)} role="tab" aria-selected={category === id}>{label}<span>{id === 'all' ? cityPlaces.length : cityPlaces.filter(place => place.category === id).length}</span></button>)}</div>
         <div className="place-toolbar">
           <label className="search-field"><Icon name="search" size={18}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="장소 이름으로 검색" /><span>⌘ K</span></label>
-          <select value={sort} onChange={e => setSort(e.target.value)} aria-label="정렬"><option value="priority">우선순위 높은 순</option><option value="name">이름순</option></select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="방문 상태 필터"><option value="all">전체 상태</option><option value="completed">방문 완료</option><option value="other">그 외</option></select>
         </div>
 
         <div className="place-results-head"><p><strong>{filtered.length}</strong>개의 장소</p><span>카드를 눌러 상세 정보를 확인하세요</span></div>
