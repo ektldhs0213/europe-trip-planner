@@ -693,6 +693,13 @@ function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
   const [cityEditorOpen, setCityEditorOpen] = useState(false)
   const [bulkImportOpen, setBulkImportOpen] = useState(false)
   const countries = [...new Set(cities.map(city => city.country))]
+  const [openCountries, setOpenCountries] = useState(() => countries.slice(0, 1))
+
+  const toggleCountry = (country) => {
+    setOpenCountries(current => current.includes(country)
+      ? current.filter(item => item !== country)
+      : [...current, country])
+  }
 
   const addCity = (form) => {
     const country = COUNTRY_OPTIONS.find(item => item.name === form.country)
@@ -741,9 +748,13 @@ function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
     <div className="page">
       <SectionHead eyebrow={`${cities.length} CITIES · ${countries.length} COUNTRIES`} title="도시" description="도시를 추가하거나 여러 장소를 한 번에 붙여넣을 수 있어요." action={<div className="head-actions"><button className="secondary-button" onClick={() => setBulkImportOpen(true)}><Icon name="upload" size={17} /> 장소 일괄 추가</button><button className="primary-button" onClick={() => setCityEditorOpen(true)}><Icon name="plus" size={18} /> 도시 추가</button></div>} />
       {countries.map(country => (
-        <section className="country-section" key={country}>
-          <div className="country-title"><h2>{cities.find(city => city.country === country).flag} {country}</h2><span>{cities.filter(city => city.country === country).length}개 도시</span></div>
-          <div className="city-grid">
+        <section className={`country-section ${openCountries.includes(country) ? 'open' : ''}`} key={country}>
+          <button className="country-toggle" type="button" onClick={() => toggleCountry(country)} aria-expanded={openCountries.includes(country)}>
+            <span className="country-toggle-name"><b>{cities.find(city => city.country === country).flag}</b><strong>{country}</strong></span>
+            <span>{cities.filter(city => city.country === country).length}개 도시</span>
+            <i><Icon name="arrow" size={17} /></i>
+          </button>
+          {openCountries.includes(country) && <div className="city-grid">
             {cities.filter(city => city.country === country).map(city => (
               <button key={city.id} className={`city-card ${city.tone}`} onClick={() => onNavigate('city', city.id)}>
                 <span className="city-country">{city.country}</span><span className="city-index">{String(cities.indexOf(city) + 1).padStart(2, '0')}</span>
@@ -751,7 +762,7 @@ function Cities({ cities, setCities, places, setPlaces, onNavigate, notify }) {
                 <footer><span>{city.dates}<br/><strong>{city.nights}</strong></span><span><Icon name="bookmark" size={15} /> {places.filter(place => place.city === city.id).length} places</span><i><Icon name="arrow" size={18} /></i></footer>
               </button>
             ))}
-          </div>
+          </div>}
         </section>
       ))}
       {cityEditorOpen && <CityEditor onClose={() => setCityEditorOpen(false)} onSave={addCity} />}
