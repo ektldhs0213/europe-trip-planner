@@ -446,7 +446,7 @@ body { background: var(--cream); }
 .country-section.open .country-toggle i { transform: rotate(90deg); }
 .country-section .city-grid { padding: 10px; border-top: 1px solid var(--line); }
 .city-grid {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
 }
 .city-card {
@@ -481,12 +481,13 @@ body { background: var(--cream); }
   .country-toggle { min-height: 49px; padding: 0 13px; grid-template-columns: 1fr auto 20px; }
   .country-toggle-name b { font-size: 16px; }
   .country-section .city-grid { padding: 8px; }
-  .city-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
-  .city-card { min-height: 112px; padding: 11px; border-radius: 11px; }
-  .city-index { top: 12px; right: 13px; }
-  .city-card > div { left: 11px; right: 30px; bottom: 41px; }
-  .city-card h3 { font-size: clamp(14px, 4vw, 17px); }
-  .city-card footer { inset: auto 11px 8px; grid-template-columns: 1fr; gap: 3px; }
+  .city-grid { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+  .city-card { min-height: 104px; padding: 9px; border-radius: 10px; }
+  .city-index { top: 8px; right: 9px; font-size: 7px; }
+  .city-card > div { left: 9px; right: 9px; bottom: 34px; }
+  .city-card h3 { font-size: clamp(12px, 3.5vw, 15px); }
+  .city-card p { font-size: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .city-card footer { inset: auto 9px 7px; padding-top: 5px; grid-template-columns: 1fr; gap: 2px; font-size: 6px; }
   .city-card footer > span:nth-child(2) { display: none; }
 }
 
