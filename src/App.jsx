@@ -981,6 +981,11 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
   }
 
   const canUseCloud = isSupabaseConfigured && session && isOnline
+  const getTicketDate = (ticket) => {
+    if (ticket.event_date) return ticket.event_date
+    const match = String(ticket.file_name || '').match(/_(\d{2})(\d{2})(?:_|\.|$)/)
+    return match ? `2026-${match[1]}-${match[2]}` : ''
+  }
   const ticketGroups = useMemo(() => {
     const groups = new Map()
     tickets.forEach(ticket => {
@@ -1006,7 +1011,8 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
         <details className="ticket-country-group" key={group.country}>
           <summary><span><b>{group.flag}</b><strong>{group.country}</strong></span><span>{group.tickets.length}개 <Icon name="chevron" size={15} /></span></summary>
           <div className="ticket-grid">{group.tickets.map(item => {
-            const date = item.event_date ? new Date(`${item.event_date}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
+            const ticketDate = getTicketDate(item)
+            const date = ticketDate ? new Date(`${ticketDate}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
             const isOfflineReady = offlineTicketIds.includes(String(item.id))
             return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={17} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{item.city || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
           })}</div>
