@@ -1059,6 +1059,57 @@ function PwaPanel({ pwa, notify }) {
   )
 }
 
+const EXCHANGE_RATE_CACHE_KEY = 'europe-trip-planner:eur-krw-rate:v1'
+
+function ExchangeRatePanel({ isOnline }) {
+  const [amount, setAmount] = useState('100')
+  const [rate, setRate] = useState('')
+  const [rateDate, setRateDate] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const loadRate = async () => {
+    if (!isOnline) {
+      setError('오프라인에서는 마지막으로 저장된 환율을 사용합니다.')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const response = await fetch('https://api.frankfurter.dev/v2/rate/EUR/KRW?providers=ECB')
+      if (!response.ok) throw new Error('환율을 불러오지 못했어요.')
+      const data = await response.json()
+      const nextRate = Number(data.rate)
+      if (!Number.isFinite(nextRate)) throw new Error('환율 응답을 확인할 수 없어요.')
+      setRate(String(nextRate))
+      setRateDate(data.date || '')
+      window.localStorage.setItem(EXCHANGE_RATE_CACHE_KEY, JSON.stringify({ rate: nextRate, date: data.date || '' }))
+    } catch (fetchError) {
+      setError(fetchError.message || '환율을 불러오지 못했어요.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(window.localStorage.getItem(EXCHANGE_RATE_CACHE_KEY) || 'null')
+      if (cached?.rate) {
+        setRate(String(cached.rate))
+        setRateDate(cached.date || '')
+      }
+    } catch {}
+    loadRate()
+  }, [isOnline])
+
+  const euroAmount = Number(String(amount).replace(/,/g, '')) || 0
+  const wonRate = Number(String(rate).replace(/,/g, '')) || 0
+  const converted = Math.round(euroAmount * wonRate)
+  const formattedDate = rateDate ? new Date(`${rateDate}T00:00:00`).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : '조회 전'
+
+  return <section className="exchange-panel"><div className="exchange-head"><div><span className="exchange-icon"><Icon name="sparkle" size={19} /></span><div><strong>유로 환율 계산기</strong><p>그리스 · 스페인 · 포르투갈 · 이탈리아 · 핀란드 공통 통화</p></div></div><button type="button" onClick={loadRate} disabled={loading || !isOnline}>{loading ? '조회 중…' : '환율 새로고침'}</button></div><div className="euro-country-list"><span>🇬🇷 그리스</span><span>🇪🇸 스페인</span><span>🇵🇹 포르투갈</span><span>🇮🇹 이탈리아</span><span>🇫🇮 핀란드</span></div><div className="exchange-calculator"><label><span>유로 금액</span><div><input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} aria-label="유로 금액" /><b>EUR</b></div></label><i>→</i><label><span>한화 예상 금액</span><div className="won-result"><strong>{converted.toLocaleString('ko-KR')}</strong><b>원</b></div></label></div><div className="exchange-rate-row"><label><span>1 EUR 기준 환율</span><div><input inputMode="decimal" value={rate} onChange={event => setRate(event.target.value)} aria-label="유로 원 환율" /><b>KRW</b></div></label><p><strong>{formattedDate}</strong> ECB 기준 환율 · 실제 환전 및 카드 결제 금액은 수수료에 따라 달라질 수 있어요.</p></div>{error && <p className="exchange-error">{error}</p>}</section>
+}
+
 function Prep({ cities, places, events, tickets, prepItems, setPrepItems, session, pwa, onRestore, notify }) {
   const [newItem, setNewItem] = useState('')
   const completedCount = prepItems.filter(item => item.completed).length
@@ -1083,7 +1134,7 @@ function Prep({ cities, places, events, tickets, prepItems, setPrepItems, sessio
     notify('여행 준비 항목을 삭제했어요.')
   }
 
-  return <div className="page"><SectionHead eyebrow="BACKUP & PREP" title="준비" description="기기 분실에 대비해 여행 데이터를 백업하고 출발 준비를 확인하세요." /><div className="prep-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={{ cities, places, events, tickets, prepItems }} onRestore={onRestore} notify={notify} /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
+  return <div className="page"><SectionHead eyebrow="BACKUP & PREP" title="준비" description="기기 분실에 대비해 여행 데이터를 백업하고 출발 준비를 확인하세요." /><div className="prep-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={{ cities, places, events, tickets, prepItems }} onRestore={onRestore} notify={notify} /><ExchangeRatePanel isOnline={pwa.isOnline} /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
 }
 
 function CloudBackupPanel({ session, isOnline, payload, onRestore, notify }) {
