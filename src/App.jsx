@@ -595,6 +595,7 @@ function eventSortKey(event, originalIndex) {
 function Schedule({ events, setEvents, notify }) {
   const [filter, setFilter] = useState('all')
   const [editor, setEditor] = useState(null)
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
   const [expandedDates, setExpandedDates] = useState(() => new Set())
   const visible = useMemo(() => events
     .map((event, originalIndex) => ({ event, sortKey: eventSortKey(event, originalIndex) }))
@@ -638,9 +639,16 @@ function Schedule({ events, setEvents, notify }) {
     notify('일정을 삭제했어요.')
   }
 
+  const importEvents = (rows) => {
+    const importedAt = Date.now()
+    setEvents(current => [...current, ...rows.map((row, index) => ({ ...row, id: `event-${importedAt}-${index}` }))])
+    setBulkImportOpen(false)
+    notify(`${rows.length}개 일정을 일괄 추가했어요.`)
+  }
+
   return (
     <div className="page">
-      <SectionHead eyebrow="ITINERARY" title="전체 일정" description="날짜별로 일정을 펼쳐 보고 모든 내용을 직접 수정할 수 있어요." action={<button className="primary-button" onClick={() => setEditor({})}><Icon name="plus" size={18} /> 일정 추가</button>} />
+      <SectionHead eyebrow="ITINERARY" title="전체 일정" description="날짜별로 일정을 펼쳐 보고 모든 내용을 직접 수정할 수 있어요." action={<div className="head-actions"><button className="secondary-button" onClick={() => setBulkImportOpen(true)}><Icon name="upload" size={17} /> 일정 일괄 추가</button><button className="primary-button" onClick={() => setEditor({})}><Icon name="plus" size={18} /> 일정 추가</button></div>} />
       <div className="filter-bar schedule-filters">
         {[['all','전체'],['transport','항공 · 교통'],['tour','투어'],['pin','방문']].map(([id, label]) => <button key={id} className={filter === id ? 'active' : ''} onClick={() => setFilter(id)}>{label}</button>)}
       </div>
@@ -661,8 +669,39 @@ function Schedule({ events, setEvents, notify }) {
         ))}
       </div>
       {editor && <ScheduleEditor event={editor} onClose={() => setEditor(null)} onSave={saveEvent} onDelete={deleteEvent} />}
+      {bulkImportOpen && <BulkScheduleImport events={events} onClose={() => setBulkImportOpen(false)} onImport={importEvents} />}
     </div>
   )
+}
+
+const BULK_SCHEDULE_TYPE_MAP = { '항공·교통': 'transport', '항공 · 교통': 'transport', '교통': 'transport', '투어': 'tour', '방문': 'pin' }
+
+function parseBulkSchedule(text, events) {
+  const seen = new Set(events.map(event => `${event.date}::${event.time}::${event.title.trim().toLowerCase()}`))
+  return text.split(/\r?\n/).map((rawLine, index) => ({ rawLine: rawLine.trim(), lineNumber: index + 1 })).filter(item => item.rawLine).map(item => {
+    if (/^(날짜|date)\s*(\/|\t)/i.test(item.rawLine)) return { ...item, header: true }
+    const columns = item.rawLine.split('\t').map(value => value.trim())
+    if (columns.length < 8) return { ...item, error: '날짜부터 상태까지 8개 열을 확인해 주세요.' }
+    const [dateValue, time, end, city, typeValue, title, desc, statusValue] = columns
+    const date = scheduleDateParts(dateValue)
+    if (!date) return { ...item, error: `'${dateValue}' 날짜를 확인해 주세요.` }
+    const type = BULK_SCHEDULE_TYPE_MAP[typeValue]
+    if (!type) return { ...item, error: `'${typeValue}' 일정 종류를 확인해 주세요.` }
+    const status = normalizeScheduleStatus(statusValue)
+    if (!title) return { ...item, error: '제목이 비어 있어요.' }
+    const duplicateKey = `${date.display}::${time}::${title.toLowerCase()}`
+    if (seen.has(duplicateKey)) return { ...item, error: '같은 날짜·시간·제목의 일정이 이미 있어요.' }
+    seen.add(duplicateKey)
+    return { ...item, date: date.display, day: date.day, time, end, city, type, title, desc, status }
+  }).filter(item => !item.header)
+}
+
+function BulkScheduleImport({ events, onClose, onImport }) {
+  const [text, setText] = useState('')
+  const parsed = useMemo(() => parseBulkSchedule(text, events), [text, events])
+  const validRows = parsed.filter(row => !row.error)
+  const errorRows = parsed.filter(row => row.error)
+  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="place-editor bulk-import-editor"><header><div><span className="eyebrow">BULK IMPORT</span><h2>일정 일괄 추가</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="bulk-import-body"><div className="bulk-format"><strong>표의 8개 열을 그대로 붙여넣으세요</strong><code>날짜 / 시작 / 종료 / 도시 / 종류 / 제목 / 설명 / 상태</code><p>종류: 항공·교통, 투어, 방문 · 상태: 예매 필요, 예매 불필요, 예매 완료</p></div><label><span>붙여넣을 일정 목록</span><textarea autoFocus value={text} onChange={event => setText(event.target.value)} rows="10" placeholder={'2026-09-07\t07:00\t07:50\t리스본\t항공·교통\t리스본 → 호카곶\tUber/Bolt 직행\t예매 불필요'} /></label>{text.trim() && <div className="bulk-preview"><div className="bulk-summary"><span className="valid"><Icon name="check" size={14} /> 추가 가능 {validRows.length}개</span><span className={errorRows.length ? 'invalid' : ''}>확인 필요 {errorRows.length}개</span></div>{validRows.slice(0, 4).map(row => <div className="preview-row" key={row.lineNumber}><span>{row.date}</span><strong>{row.title}</strong><small>{row.time}</small></div>)}{validRows.length > 4 && <p className="more-rows">외 {validRows.length - 4}개</p>}{errorRows.slice(0, 4).map(row => <div className="error-row" key={row.lineNumber}><strong>{row.lineNumber}행</strong><span>{row.error}</span></div>)}</div>}</div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button className="primary-button" disabled={!validRows.length} onClick={() => onImport(validRows)}><Icon name="upload" size={17} /> {validRows.length}개 일정 추가</button></footer></div></div>
 }
 
 function ScheduleEditor({ event, onClose, onSave, onDelete }) {
