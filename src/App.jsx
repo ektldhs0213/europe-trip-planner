@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadLocalTrip, saveLocalTrip } from './lib/localStore.js'
 import { downloadOfflineTicket, getOfflineTicket, getOfflineTicketIds, openOfflineTicket, saveOfflineTicket } from './lib/offlineTickets.js'
-import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, updateTicketCity, uploadTicket } from './lib/supabase.js'
+import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, uploadTicket } from './lib/supabase.js'
 import { usePwa } from './lib/usePwa.js'
 import { BATCH_CITY_SEED, BATCH_PLACE_SEED } from './placeBatch20260816.js'
 
@@ -1031,7 +1031,6 @@ function ConfirmDelete({ place, onClose, onConfirm }) {
 
 function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
   const [uploadOpen, setUploadOpen] = useState(false)
-  const [ticketEditor, setTicketEditor] = useState(null)
   const [busy, setBusy] = useState(false)
   const [offlineTicketIds, setOfflineTicketIds] = useState([])
 
@@ -1050,20 +1049,6 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
       notify(savedOffline ? '티켓을 DB와 이 기기에 저장했어요.' : '티켓을 DB에 저장했어요.')
     } catch (error) {
       notify(error.message || '티켓 업로드에 실패했어요.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleTicketCityUpdate = async (city) => {
-    setBusy(true)
-    try {
-      const updated = await updateTicketCity(ticketEditor.id, city)
-      setTickets(current => current.map(ticket => ticket.id === updated.id ? updated : ticket))
-      setTicketEditor(null)
-      notify('티켓 도시를 변경했어요.')
-    } catch (error) {
-      notify(error.message || '티켓 도시를 변경하지 못했어요.')
     } finally {
       setBusy(false)
     }
@@ -1110,7 +1095,10 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
   }
 
   const canUseCloud = isSupabaseConfigured && session && isOnline
-  const getTicketCity = (ticket) => String(ticket.city || '').trim().replace(/[ㄱ-ㅎㅏ-ㅣ]+$/g, '')
+  const getTicketCity = (ticket) => {
+    const city = String(ticket.city || '').trim().replace(/[ㄱ-ㅎㅏ-ㅣ]+$/g, '')
+    return city === '신트라' || city.toLowerCase() === 'sintra' ? '리스본' : city
+  }
   const getTicketDate = (ticket) => {
     if (ticket.event_date) return ticket.event_date
     if (String(ticket.file_name || '').includes('전자항공권_리스본')) return '2026-09-02'
@@ -1153,7 +1141,7 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
     const ticketDate = getTicketDate(item)
     const date = ticketDate ? new Date(`${ticketDate}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
     const isOfflineReady = offlineTicketIds.includes(String(item.id))
-    return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={16} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions"><button disabled={busy} onClick={() => setTicketEditor(item)}><Icon name="edit" size={13}/> 도시 변경</button>{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
+    return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={16} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
   }
 
   return (
@@ -1174,15 +1162,8 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
         </details>
       ))}</div>
       {uploadOpen && <TicketUploadEditor busy={busy} onClose={() => setUploadOpen(false)} onSave={handleUpload} />}
-      {ticketEditor && <TicketCityEditor ticket={ticketEditor} cities={cities} busy={busy} onClose={() => setTicketEditor(null)} onSave={handleTicketCityUpdate} />}
     </div>
   )
-}
-
-function TicketCityEditor({ ticket, cities, busy, onClose, onSave }) {
-  const matched = cities.find(city => [city.id, city.name, city.ko].some(value => String(value).toLowerCase() === String(ticket.city || '').toLowerCase()))
-  const [city, setCity] = useState(matched?.ko || cities[0]?.ko || '')
-  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="place-editor ticket-city-editor"><header><div><span className="eyebrow">TICKET DETAILS</span><h2>티켓 도시 변경</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label className="full"><span>티켓</span><input value={ticket.title} readOnly /></label><label className="full"><span>도시</span><select value={city} onChange={event => setCity(event.target.value)}>{cities.map(item => <option key={item.id} value={item.ko}>{item.flag} {item.ko}</option>)}</select></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button type="button" className="primary-button" disabled={busy || !city} onClick={() => onSave(city)}>{busy ? '변경 중…' : '도시 저장'}</button></footer></div></div>
 }
 
 function TicketUploadEditor({ busy, onClose, onSave }) {
