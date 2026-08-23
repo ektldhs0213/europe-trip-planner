@@ -108,6 +108,20 @@ export async function fetchTickets() {
   return data || []
 }
 
+export async function updateTicketCity(ticketId, city) {
+  const client = requireClient()
+  const user = await requireUser()
+  const { data, error } = await client
+    .from(TICKET_TABLE)
+    .update({ city })
+    .eq('id', ticketId)
+    .eq('user_id', user.id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function getTicketUrl(storagePath) {
   const client = requireClient()
   await requireUser()

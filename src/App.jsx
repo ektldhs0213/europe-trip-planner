@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadLocalTrip, saveLocalTrip } from './lib/localStore.js'
 import { downloadOfflineTicket, getOfflineTicket, getOfflineTicketIds, openOfflineTicket, saveOfflineTicket } from './lib/offlineTickets.js'
-import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, uploadTicket } from './lib/supabase.js'
+import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, updateTicketCity, uploadTicket } from './lib/supabase.js'
 import { usePwa } from './lib/usePwa.js'
 import { BATCH_CITY_SEED, BATCH_PLACE_SEED } from './placeBatch20260816.js'
 
@@ -415,7 +415,7 @@ function App() {
         <div className="page-wrap">
           {view === 'schedule' && <Schedule events={events} setEvents={setEvents} notify={notify} />}
           {view === 'cities' && <Cities cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onNavigate={navigate} notify={notify} />}
-          {view === 'city' && <CityDetail cityId={selectedCity} cities={cities} places={places} setPlaces={setPlaces} onBack={() => navigate('cities')} notify={notify} />}
+          {view === 'city' && <CityDetail cityId={selectedCity} cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onBack={() => navigate('cities')} notify={notify} />}
           {view === 'bookings' && <Bookings cities={cities} tickets={tickets} setTickets={setTickets} session={session} isOnline={pwa.isOnline} notify={notify} />}
           {view === 'prep' && <Prep cities={cities} places={places} events={events} tickets={tickets} prepItems={prepItems} setPrepItems={setPrepItems} session={session} pwa={pwa} onRestore={restoreLocalData} notify={notify} />}
         </div>
@@ -876,7 +876,7 @@ function CityEditor({ onClose, onSave }) {
   )
 }
 
-function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
+function CityDetail({ cityId, cities, setCities, places, setPlaces, onBack, notify }) {
   const city = cities.find(item => item.id === cityId) || cities[0]
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
@@ -905,7 +905,7 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
       setPlaces(current => current.map(place => place.id === editor.id ? { ...place, ...normalizedForm } : place))
       notify('장소 정보를 수정했어요.')
     } else {
-      setPlaces(current => [...current, { ...normalizedForm, id: Date.now(), city: city.id, reservation: false, duration: '', visitDate: '', meta: categoryLabels[form.category] }])
+      setPlaces(current => [...current, { ...normalizedForm, id: Date.now(), city: normalizedForm.city || city.id, reservation: false, duration: '', visitDate: '', meta: categoryLabels[form.category] }])
       notify('새 장소를 추가했어요.')
     }
     setEditor(null)
@@ -939,9 +939,20 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
     setSelectedPlaceIds([])
   }
 
+  const deleteCity = () => {
+    if (cityPlaces.length) {
+      notify('도시를 삭제하기 전에 장소를 다른 도시로 옮겨 주세요.')
+      return
+    }
+    if (!window.confirm(`“${city.ko}” 도시를 삭제할까요?`)) return
+    setCities(current => current.filter(item => item.id !== city.id))
+    notify(`${city.ko} 도시를 삭제했어요.`)
+    onBack()
+  }
+
   return (
     <div className="page city-detail-page">
-      <button className="back-button" onClick={onBack}><span>‹</span> 모든 도시</button>
+      <div className="city-detail-actions"><button className="back-button" onClick={onBack}><span>‹</span> 모든 도시</button><button className="danger-button" type="button" onClick={deleteCity}><Icon name="trash" size={14} /> 도시 삭제</button></div>
       <section className={`city-hero ${city.tone}`}>
         <div className="city-hero-copy"><span>{city.flag} {city.country.toUpperCase()}</span><h1>{city.name}</h1><p>{city.ko} · {city.dates} · {city.nights}</p></div>
         <div className="city-hero-stats"><div><strong>{cityPlaces.filter(place => place.visitStatus === 'tour-planned').length}</strong><span>투어 예정</span></div><div><strong>{cityPlaces.filter(place => place.visitStatus === 'tour-completed').length}</strong><span>투어 완료</span></div><div><strong>{cityPlaces.filter(place => place.visitStatus === 'visit-needed').length}</strong><span>방문 필요</span></div><div><strong>{cityPlaces.filter(place => place.visitStatus === 'visit-completed').length}</strong><span>방문 완료</span></div></div>
@@ -968,7 +979,7 @@ function CityDetail({ cityId, cities, places, setPlaces, onBack, notify }) {
         </div>
       </section>
       <button className="floating-add" onClick={() => setEditor({})}><Icon name="plus" /> 장소 추가</button>
-      {editor && <PlaceEditor place={editor} onClose={() => setEditor(null)} onSave={savePlace} />}
+      {editor && <PlaceEditor place={{ ...editor, city: editor.city || city.id }} cities={cities} onClose={() => setEditor(null)} onSave={savePlace} />}
       {deleteTarget && <ConfirmDelete place={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={deletePlace} />}
     </div>
   )
@@ -991,8 +1002,8 @@ function PlaceCard({ place, selected, onToggleSelected, onEdit, onDelete }) {
   )
 }
 
-function PlaceEditor({ place, onClose, onSave }) {
-  const [form, setForm] = useState({ name: place.name || '', category: place.category || 'attraction', description: place.description || '', mapUrl: place.mapUrl || '', priority: place.priority || 2, visitStatus: normalizePlace(place).visitStatus })
+function PlaceEditor({ place, cities, onClose, onSave }) {
+  const [form, setForm] = useState({ name: place.name || '', city: place.city || cities[0]?.id || '', category: place.category || 'attraction', description: place.description || '', mapUrl: place.mapUrl || '', priority: place.priority || 2, visitStatus: normalizePlace(place).visitStatus })
   const update = (field, value) => setForm(current => ({ ...current, [field]: value }))
   const submit = (event) => { event.preventDefault(); if (form.name.trim()) onSave(form) }
   return (
@@ -1001,6 +1012,7 @@ function PlaceEditor({ place, onClose, onSave }) {
         <header><div><span className="eyebrow">PLACE DETAILS</span><h2>{place.id ? '장소 수정' : '새 장소 추가'}</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header>
         <div className="form-grid">
           <label className="full"><span>장소명 <em>*</em></span><input autoFocus value={form.name} onChange={e => update('name', e.target.value)} placeholder="예: Sagrada Família" required /></label>
+          <label className="full"><span>저장 도시</span><select value={form.city} onChange={e => update('city', e.target.value)}>{cities.map(city => <option key={city.id} value={city.id}>{city.flag} {city.ko}</option>)}</select></label>
           <label><span>카테고리 <em>*</em></span><select value={form.category} onChange={e => update('category', e.target.value)}>{Object.entries(categoryLabels).filter(([id]) => id !== 'all').map(([id,label]) => <option key={id} value={id}>{label}</option>)}</select></label>
           <label className="visited-field"><span>방문 상태</span><select value={form.visitStatus} onChange={e => update('visitStatus', e.target.value)}>{PLACE_VISIT_STATUSES.map(status => <option key={status} value={status}>{placeVisitLabels[status]}</option>)}</select></label>
           <label className="full"><span>메모</span><textarea value={form.description} onChange={e => update('description', e.target.value)} placeholder="방문 팁이나 기억할 내용을 적어두세요." rows="3" /></label>
@@ -1019,6 +1031,7 @@ function ConfirmDelete({ place, onClose, onConfirm }) {
 
 function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [ticketEditor, setTicketEditor] = useState(null)
   const [busy, setBusy] = useState(false)
   const [offlineTicketIds, setOfflineTicketIds] = useState([])
 
@@ -1037,6 +1050,20 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
       notify(savedOffline ? '티켓을 DB와 이 기기에 저장했어요.' : '티켓을 DB에 저장했어요.')
     } catch (error) {
       notify(error.message || '티켓 업로드에 실패했어요.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleTicketCityUpdate = async (city) => {
+    setBusy(true)
+    try {
+      const updated = await updateTicketCity(ticketEditor.id, city)
+      setTickets(current => current.map(ticket => ticket.id === updated.id ? updated : ticket))
+      setTicketEditor(null)
+      notify('티켓 도시를 변경했어요.')
+    } catch (error) {
+      notify(error.message || '티켓 도시를 변경하지 못했어요.')
     } finally {
       setBusy(false)
     }
@@ -1126,7 +1153,7 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
     const ticketDate = getTicketDate(item)
     const date = ticketDate ? new Date(`${ticketDate}T00:00:00`).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) : '날짜 미정'
     const isOfflineReady = offlineTicketIds.includes(String(item.id))
-    return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={16} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions">{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
+    return <article className="ticket-card" key={item.id || item.title}><div className="ticket-side"><Icon name="ticket" size={16} /><span>{isOfflineReady ? 'OFFLINE' : item.storage_path ? 'BACKUP' : 'UPLOAD'}</span></div><div className="ticket-main"><span>{getTicketCity(item) || '여행 티켓'}</span><h3>{item.title}</h3><p>{date}{item.file_name ? ` · ${item.file_name}` : ''}</p><div><span className={`status-chip ${item.storage_path ? 'reserved' : ''}`}>{isOfflineReady ? '오프라인 저장됨' : item.storage_path ? 'DB 저장 완료' : '파일 업로드 필요'}</span><div className="ticket-actions"><button disabled={busy} onClick={() => setTicketEditor(item)}><Icon name="edit" size={13}/> 도시 변경</button>{item.storage_path && session && !isOfflineReady && <button disabled={!isOnline || busy} onClick={() => cacheTicket(item)}><Icon name="download" size={13}/> 오프라인 저장</button>}<button disabled={(!item.storage_path || !session) && !isOfflineReady} onClick={() => openTicket(item)}>티켓 열기 <Icon name="external" size={13}/></button></div></div></div></article>
   }
 
   return (
@@ -1147,8 +1174,15 @@ function Bookings({ cities, tickets, setTickets, session, isOnline, notify }) {
         </details>
       ))}</div>
       {uploadOpen && <TicketUploadEditor busy={busy} onClose={() => setUploadOpen(false)} onSave={handleUpload} />}
+      {ticketEditor && <TicketCityEditor ticket={ticketEditor} cities={cities} busy={busy} onClose={() => setTicketEditor(null)} onSave={handleTicketCityUpdate} />}
     </div>
   )
+}
+
+function TicketCityEditor({ ticket, cities, busy, onClose, onSave }) {
+  const matched = cities.find(city => [city.id, city.name, city.ko].some(value => String(value).toLowerCase() === String(ticket.city || '').toLowerCase()))
+  const [city, setCity] = useState(matched?.ko || cities[0]?.ko || '')
+  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && onClose()}><div className="place-editor ticket-city-editor"><header><div><span className="eyebrow">TICKET DETAILS</span><h2>티켓 도시 변경</h2></div><button type="button" onClick={onClose} aria-label="닫기"><Icon name="close" /></button></header><div className="form-grid"><label className="full"><span>티켓</span><input value={ticket.title} readOnly /></label><label className="full"><span>도시</span><select value={city} onChange={event => setCity(event.target.value)}>{cities.map(item => <option key={item.id} value={item.ko}>{item.flag} {item.ko}</option>)}</select></label></div><footer><button type="button" className="cancel-button" onClick={onClose}>취소</button><button type="button" className="primary-button" disabled={busy || !city} onClick={() => onSave(city)}>{busy ? '변경 중…' : '도시 저장'}</button></footer></div></div>
 }
 
 function TicketUploadEditor({ busy, onClose, onSave }) {
