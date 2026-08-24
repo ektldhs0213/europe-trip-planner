@@ -33,6 +33,7 @@ const iconPaths = {
   cloud: ['M17.5 19H7a5 5 0 1 1 1.7-9.7A6 6 0 0 1 20 12a3.5 3.5 0 0 1-2.5 7Z'],
   upload: ['M12 16V4', 'm7 9 5-5 5 5', 'M5 20h14'],
   download: ['M12 4v12', 'm7-5 5 5 5-5', 'M5 20h14'],
+  copy: ['M9 9h11v11H9Z', 'M4 15H3V4h11v1'],
   database: ['M20 5c0 1.7-3.6 3-8 3S4 6.7 4 5s3.6-3 8-3 8 1.3 8 3Z', 'M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5', 'M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7'],
   file: ['M14 2H6a2 2 0 0 0-2 2v16h16V8Z', 'M14 2v6h6', 'M8 13h8', 'M8 17h6'],
 }
@@ -49,7 +50,8 @@ const NAV_ITEMS = [
   { id: 'schedule', label: '전체 일정', icon: 'calendar' },
   { id: 'cities', label: '도시', icon: 'pin' },
   { id: 'bookings', label: '예약 · 티켓', icon: 'bookmark' },
-  { id: 'prep', label: '준비', icon: 'backpack' },
+  { id: 'misc', label: '기타', icon: 'backpack' },
+  { id: 'settings', label: '환경설정', icon: 'database' },
 ]
 
 const INITIAL_CITIES = [
@@ -437,7 +439,8 @@ function App() {
           {view === 'cities' && <Cities cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onNavigate={navigate} notify={notify} />}
           {view === 'city' && <CityDetail cityId={selectedCity} cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onBack={() => navigate('cities')} notify={notify} />}
           {view === 'bookings' && <Bookings cities={cities} tickets={tickets} setTickets={setTickets} session={session} isOnline={pwa.isOnline} notify={notify} />}
-          {view === 'prep' && <Prep cities={cities} places={places} events={events} tickets={tickets} prepItems={prepItems} setPrepItems={setPrepItems} session={session} pwa={pwa} onRestore={restoreLocalData} notify={notify} />}
+          {view === 'misc' && <Misc prepItems={prepItems} setPrepItems={setPrepItems} isOnline={pwa.isOnline} notify={notify} />}
+          {view === 'settings' && <Settings cities={cities} places={places} events={events} tickets={tickets} prepItems={prepItems} session={session} pwa={pwa} onRestore={restoreLocalData} notify={notify} />}
         </div>
       </main>
       {toast && <div className="toast"><span><Icon name="check" size={17} /></span>{toast}</div>}
@@ -1288,7 +1291,19 @@ function ExchangeRatePanel({ isOnline }) {
   return <section className="exchange-panel"><div className="exchange-head"><div><span className="exchange-icon"><Icon name="sparkle" size={19} /></span><div><strong>유로 환율 계산기</strong><p>유로와 원화를 양방향으로 계산할 수 있어요.</p></div></div><button type="button" onClick={loadRate} disabled={loading || !isOnline}>{loading ? '조회 중…' : '환율 새로고침'}</button></div><div className="exchange-calculator"><label><span>{inputLabel}</span><div><input inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} aria-label={inputLabel} /><b>{inputUnit}</b></div></label><button type="button" className="exchange-swap" onClick={swapDirection} aria-label="환율 계산 방향 바꾸기">↔</button><label><span>{resultLabel}</span><div className="won-result"><strong>{formattedResult}</strong><b>{resultUnit}</b></div></label></div><div className="exchange-rate-row"><label><span>1 EUR 기준 환율</span><div><input inputMode="decimal" value={rate} onChange={event => setRate(event.target.value)} aria-label="유로 원 환율" /><b>KRW</b></div></label><p><strong>{formattedDate}</strong> ECB 기준 환율 · 실제 환전 및 카드 결제 금액은 수수료에 따라 달라질 수 있어요.</p></div>{error && <p className="exchange-error">{error}</p>}</section>
 }
 
-function Prep({ cities, places, events, tickets, prepItems, setPrepItems, session, pwa, onRestore, notify }) {
+const TRANSLATION_MOCK = {
+  '공항까지 얼마나 걸리나요?': { en: 'How long does it take to get to the airport?', es: '¿Cuánto se tarda en llegar al aeropuerto?' },
+  '예약했습니다.': { en: 'I have a reservation.', es: 'Tengo una reserva.' },
+  '계산서 주세요.': { en: 'Could I have the bill, please?', es: 'La cuenta, por favor.' },
+}
+
+function TranslationMockup() {
+  const [text, setText] = useState('공항까지 얼마나 걸리나요?')
+  const result = TRANSLATION_MOCK[text.trim()]
+  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><div><strong>간단 번역</strong><p>한국어 문장을 영어와 스페인어로 바로 확인하는 화면 목업입니다.</p></div><em>MOCKUP</em></div><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" placeholder="번역할 문장을 입력하세요" /></label><div className="translation-results"><article><span>ENGLISH</span><strong>{text.trim() ? result?.en || '실시간 번역 API를 연결하면 여기에 표시됩니다.' : '문장을 입력해 주세요.'}</strong><button type="button" disabled={!result}><Icon name="copy" size={14} /> 복사</button></article><article><span>ESPAÑOL</span><strong>{text.trim() ? result?.es || 'La traducción aparecerá aquí al conectar la API.' : 'Escribe una frase.'}</strong><button type="button" disabled={!result}><Icon name="copy" size={14} /> 복사</button></article></div><div className="translation-examples"><span>예시 문장</span>{Object.keys(TRANSLATION_MOCK).map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div><p className="translation-note">입력 내용은 저장하거나 DB로 전송하지 않습니다. 실제 번역 API는 아직 연결되지 않았습니다.</p></section>
+}
+
+function Misc({ prepItems, setPrepItems, isOnline, notify }) {
   const [newItem, setNewItem] = useState('')
   const completedCount = prepItems.filter(item => item.completed).length
   const progress = prepItems.length ? completedCount / prepItems.length * 100 : 0
@@ -1312,7 +1327,11 @@ function Prep({ cities, places, events, tickets, prepItems, setPrepItems, sessio
     notify('여행 준비 항목을 삭제했어요.')
   }
 
-  return <div className="page"><SectionHead eyebrow="BACKUP & PREP" title="준비" description="기기 분실에 대비해 여행 데이터를 백업하고 출발 준비를 확인하세요." /><div className="prep-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={{ cities, places, events, tickets, prepItems }} onRestore={onRestore} notify={notify} /><ExchangeRatePanel isOnline={pwa.isOnline} /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
+  return <div className="page"><SectionHead eyebrow="TRAVEL TOOLS" title="기타" description="환율과 간단 번역을 확인하고 여행 준비물을 관리하세요." /><div className="misc-grid"><ExchangeRatePanel isOnline={isOnline} /><TranslationMockup /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
+}
+
+function Settings({ cities, places, events, tickets, prepItems, session, pwa, onRestore, notify }) {
+  return <div className="page"><SectionHead eyebrow="APP SETTINGS" title="환경설정" description="앱 설치와 기기 간 데이터 백업을 관리하세요." /><div className="settings-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={{ cities, places, events, tickets, prepItems }} onRestore={onRestore} notify={notify} /></div></div>
 }
 
 function CloudBackupPanel({ session, isOnline, payload, onRestore, notify }) {

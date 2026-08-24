@@ -124,6 +124,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .city-detail-actions .back-button { margin-bottom: 0; }
 .city-detail-actions .danger-button { min-height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 9px; }
 
+.misc-grid, .settings-grid { display: grid; gap: 18px; }
+.misc-grid .checklist-panel, .settings-grid .backup-panel { width: 100%; max-width: none; }
+.translation-panel { padding: 22px; border: 1px solid #d8ddea; border-radius: 20px; background: var(--paper); }
+.translation-head { display: flex; align-items: center; gap: 11px; }
+.translation-icon { width: 38px; height: 38px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 12px; background: #e9ecf4; color: #4d5f89; }
+.translation-head > div { min-width: 0; }
+.translation-head strong { display: block; font-size: 13px; }
+.translation-head p { margin: 4px 0 0; color: var(--muted); font-size: 8px; line-height: 1.5; }
+.translation-head em { margin-left: auto; padding: 5px 8px; border-radius: 999px; background: #f0f2f7; color: #647292; font-size: 7px; font-style: normal; font-weight: 800; letter-spacing: .08em; }
+.translation-input { display: block; margin-top: 17px; }
+.translation-input > span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 8px; font-weight: 700; }
+.translation-input textarea { width: 100%; padding: 13px; resize: vertical; border: 1px solid var(--line); border-radius: 11px; background: #fff; color: var(--ink); font: inherit; font-size: 12px; line-height: 1.6; outline: 0; }
+.translation-input textarea:focus { border-color: #8390ad; box-shadow: 0 0 0 3px rgba(78,95,137,.09); }
+.translation-results { margin-top: 12px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.translation-results article { min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8f9fc; display: flex; flex-direction: column; align-items: flex-start; }
+.translation-results article > span { color: #687695; font-size: 7px; font-weight: 800; letter-spacing: .1em; }
+.translation-results article > strong { margin: 9px 0; font-size: 11px; line-height: 1.55; }
+.translation-results article > button { margin-top: auto; padding: 0; border: 0; background: transparent; color: #596887; display: inline-flex; align-items: center; gap: 5px; font-size: 8px; font-weight: 700; }
+.translation-results article > button:disabled { opacity: .45; }
+.translation-examples { margin-top: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.translation-examples > span { margin-right: 3px; color: var(--muted); font-size: 7px; font-weight: 700; }
+.translation-examples button { min-height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-size: 7px; cursor: pointer; }
+.translation-note { margin: 11px 0 0; color: var(--muted); font-size: 7px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .top-nav, .mobile-nav { grid-template-columns: repeat(5,1fr); }
+  .translation-panel { margin-bottom: 15px; padding: 17px 14px; }
+  .translation-results { grid-template-columns: 1fr; }
+  .translation-head em { display: none; }
+}
+
 /* Compact place cards: text-first layout without the decorative initial panel. */
 .places-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .place-card { min-height: 152px; display: block; border-radius: 13px; }
