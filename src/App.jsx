@@ -348,16 +348,16 @@ function App() {
   const [prepItems, setPrepItems] = useState(() => normalizePrepItems(cachedTrip))
   const [session, setSession] = useState(null)
   const [toast, setToast] = useState('')
-  const initialLocalSavedAtRef = useRef(cachedTrip?.savedAt || null)
+  const localSavedAtRef = useRef(cachedTrip?.savedAt || null)
   const initialLocalSaveSkippedRef = useRef(false)
-  const autoSyncUserRef = useRef('')
+  const syncInFlightRef = useRef(false)
 
   useEffect(() => {
     if (!initialLocalSaveSkippedRef.current) {
       initialLocalSaveSkippedRef.current = true
       return
     }
-    saveLocalTrip({ cities, places, events, tickets, prepItems, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION })
+    localSavedAtRef.current = saveLocalTrip({ cities, places, events, tickets, prepItems, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION })
   }, [cities, places, events, tickets, prepItems])
 
   useEffect(() => {
@@ -394,19 +394,39 @@ function App() {
   }
 
   useEffect(() => {
-    if (!session?.user?.id || !pwa.isOnline || autoSyncUserRef.current === session.user.id) return
-    autoSyncUserRef.current = session.user.id
-    const localSavedAt = initialLocalSavedAtRef.current
+    if (!session?.user?.id || !pwa.isOnline) return undefined
+    let disposed = false
 
-    restoreTrip().then(result => {
-      const remoteTime = Date.parse(result.updated_at || '')
-      const localTime = Date.parse(localSavedAt || '')
-      if (!Number.isFinite(remoteTime) || (Number.isFinite(localTime) && remoteTime <= localTime)) return
-      restoreLocalData(result.payload)
-      initialLocalSavedAtRef.current = result.updated_at
-      notify('더 최신인 DB 백업을 이 기기에 자동으로 반영했어요.')
-    }).catch(() => {})
-  }, [session, pwa.isOnline])
+    const syncLatestBackup = async () => {
+      if (syncInFlightRef.current || disposed || document.visibilityState === 'hidden') return
+      syncInFlightRef.current = true
+      try {
+        const result = await restoreTrip()
+        if (disposed) return
+        const remoteTime = Date.parse(result.updated_at || '')
+        const localTime = Date.parse(localSavedAtRef.current || '')
+        if (!Number.isFinite(remoteTime) || (Number.isFinite(localTime) && remoteTime <= localTime)) return
+        localSavedAtRef.current = result.updated_at
+        restoreLocalData(result.payload)
+        notify('더 최신인 DB 백업을 이 기기에 자동으로 반영했어요.')
+      } catch {
+      } finally {
+        syncInFlightRef.current = false
+      }
+    }
+
+    const handleVisibility = () => document.visibilityState === 'visible' && syncLatestBackup()
+    syncLatestBackup()
+    window.addEventListener('focus', syncLatestBackup)
+    document.addEventListener('visibilitychange', handleVisibility)
+    const timer = window.setInterval(syncLatestBackup, 60000)
+    return () => {
+      disposed = true
+      window.removeEventListener('focus', syncLatestBackup)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.clearInterval(timer)
+    }
+  }, [session?.user?.id, pwa.isOnline])
 
   return (
     <div className="app-shell">
@@ -1300,6 +1320,11 @@ function CloudBackupPanel({ session, isOnline, payload, onRestore, notify }) {
   const [busy, setBusy] = useState('')
   const [magicSent, setMagicSent] = useState(false)
   const [lastBackup, setLastBackup] = useState('')
+
+  useEffect(() => {
+    if (!session?.user?.id || !isOnline) return
+    restoreTrip().then(result => setLastBackup(result.updated_at || '')).catch(() => {})
+  }, [session?.user?.id, isOnline])
 
   const run = async (name, action) => {
     if (!isOnline) {
