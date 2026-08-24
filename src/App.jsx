@@ -1299,14 +1299,23 @@ const TRANSLATION_MOCK = {
 
 function TranslationMockup() {
   const [text, setText] = useState('공항까지 얼마나 걸리나요?')
-  const result = TRANSLATION_MOCK[text.trim()]
-  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><div><strong>간단 번역</strong><p>한국어 문장을 영어와 스페인어로 바로 확인하는 화면 목업입니다.</p></div><em>MOCKUP</em></div><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" placeholder="번역할 문장을 입력하세요" /></label><div className="translation-results"><article><span>ENGLISH</span><strong>{text.trim() ? result?.en || '실시간 번역 API를 연결하면 여기에 표시됩니다.' : '문장을 입력해 주세요.'}</strong><button type="button" disabled={!result}><Icon name="copy" size={14} /> 복사</button></article><article><span>ESPAÑOL</span><strong>{text.trim() ? result?.es || 'La traducción aparecerá aquí al conectar la API.' : 'Escribe una frase.'}</strong><button type="button" disabled={!result}><Icon name="copy" size={14} /> 복사</button></article></div><div className="translation-examples"><span>예시 문장</span>{Object.keys(TRANSLATION_MOCK).map(example => <button type="button" key={example} onClick={() => setText(example)}>{example}</button>)}</div><p className="translation-note">입력 내용은 저장하거나 DB로 전송하지 않습니다. 실제 번역 API는 아직 연결되지 않았습니다.</p></section>
+  const [translatedText, setTranslatedText] = useState('')
+  const result = TRANSLATION_MOCK[translatedText]
+  const translate = () => setTranslatedText(text.trim())
+  const copy = async value => {
+    if (!value) return
+    await navigator.clipboard?.writeText(value)
+  }
+  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><div><strong>간단 번역</strong><p>한국어 문장을 영어와 스페인어로 바로 확인하는 화면 목업입니다.</p></div><em>MOCKUP</em></div><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" placeholder="번역할 문장을 입력하세요" /></label><button type="button" className="primary-button translation-submit" disabled={!text.trim()} onClick={translate}><Icon name="sparkle" size={15} /> 번역하기</button><div className="translation-results"><article><span>ENGLISH</span><strong>{!translatedText ? '번역하기 버튼을 눌러 주세요.' : result?.en || '실시간 번역 API를 연결하면 여기에 표시됩니다.'}</strong><button type="button" disabled={!result?.en} onClick={() => copy(result?.en)}><Icon name="copy" size={14} /> 복사</button></article><article><span>ESPAÑOL</span><strong>{!translatedText ? 'Pulsa el botón para traducir.' : result?.es || 'La traducción aparecerá aquí al conectar la API.'}</strong><button type="button" disabled={!result?.es} onClick={() => copy(result?.es)}><Icon name="copy" size={14} /> 복사</button></article></div><div className="translation-examples"><span>예시 문장</span>{Object.keys(TRANSLATION_MOCK).map(example => <button type="button" key={example} onClick={() => { setText(example); setTranslatedText('') }}>{example}</button>)}</div><p className="translation-note">입력 내용은 저장하거나 DB로 전송하지 않습니다. 실제 번역 API는 아직 연결되지 않았습니다.</p></section>
 }
 
 function Misc({ prepItems, setPrepItems, isOnline, notify }) {
   const [newItem, setNewItem] = useState('')
+  const [prepFilter, setPrepFilter] = useState('all')
+  const [selectedPrepIds, setSelectedPrepIds] = useState([])
   const completedCount = prepItems.filter(item => item.completed).length
   const progress = prepItems.length ? completedCount / prepItems.length * 100 : 0
+  const visiblePrepItems = prepItems.filter(item => prepFilter === 'all' || (prepFilter === 'needed' ? !item.completed : item.completed))
 
   const addItem = event => {
     event.preventDefault()
@@ -1318,16 +1327,24 @@ function Misc({ prepItems, setPrepItems, isOnline, notify }) {
     notify('여행 준비 항목을 추가했어요.')
   }
 
-  const toggleItem = id => {
-    setPrepItems(current => current.map(item => item.id === id ? { ...item, completed: !item.completed } : item))
+  const toggleSelection = id => {
+    setSelectedPrepIds(current => current.includes(id) ? current.filter(currentId => currentId !== id) : [...current, id])
+  }
+
+  const completeSelected = () => {
+    if (!selectedPrepIds.length) return
+    setPrepItems(current => current.map(item => selectedPrepIds.includes(item.id) ? { ...item, completed: true } : item))
+    setSelectedPrepIds([])
+    notify('선택한 준비물을 준비 완료로 변경했어요.')
   }
 
   const deleteItem = item => {
     setPrepItems(current => current.filter(currentItem => currentItem.id !== item.id))
+    setSelectedPrepIds(current => current.filter(id => id !== item.id))
     notify('여행 준비 항목을 삭제했어요.')
   }
 
-  return <div className="page"><SectionHead eyebrow="TRAVEL TOOLS" title="기타" description="환율과 간단 번역을 확인하고 여행 준비물을 관리하세요." /><div className="misc-grid"><ExchangeRatePanel isOnline={isOnline} /><TranslationMockup /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form>{prepItems.length ? prepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={item.completed} onChange={() => toggleItem(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '완료했어요' : '출발 전 확인'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">아직 준비 항목이 없어요.</div>}</section></div></div>
+  return <div className="page"><SectionHead eyebrow="TRAVEL TOOLS" title="기타" description="환율과 간단 번역을 확인하고 여행 준비물을 관리하세요." /><div className="misc-grid"><ExchangeRatePanel isOnline={isOnline} /><TranslationMockup /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form><div className="prep-toolbar"><div className="prep-filters" aria-label="준비물 상태 필터">{[['all','전체'],['needed','준비 필요'],['completed','준비 완료']].map(([value,label]) => <button type="button" key={value} className={prepFilter === value ? 'active' : ''} onClick={() => setPrepFilter(value)}>{label}</button>)}</div><button type="button" className="primary-button prep-complete-button" disabled={!selectedPrepIds.length} onClick={completeSelected}><Icon name="check" size={15} /> 선택 항목 준비 완료{selectedPrepIds.length ? ` (${selectedPrepIds.length})` : ''}</button></div>{visiblePrepItems.length ? visiblePrepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''} ${selectedPrepIds.includes(item.id) ? 'selected' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={selectedPrepIds.includes(item.id)} onChange={() => toggleSelection(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><small>{item.completed ? '준비 완료' : '준비 필요'}</small><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">이 상태의 준비 항목이 없어요.</div>}</section></div></div>
 }
 
 function Settings({ cities, places, events, tickets, prepItems, session, pwa, onRestore, notify }) {

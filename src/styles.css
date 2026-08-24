@@ -147,12 +147,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .translation-examples > span { margin-right: 3px; color: var(--muted); font-size: 7px; font-weight: 700; }
 .translation-examples button { min-height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-size: 7px; cursor: pointer; }
 .translation-note { margin: 11px 0 0; color: var(--muted); font-size: 7px; line-height: 1.5; }
+.translation-submit { width: 100%; margin-top: 9px; }
+.prep-toolbar { margin: 14px 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.prep-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.prep-filters button { min-height: 31px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 8px; font-weight: 700; cursor: pointer; }
+.prep-filters button.active { border-color: #65769e; background: #e9ecf4; color: #40547f; }
+.prep-complete-button { min-height: 34px; white-space: nowrap; }
+.check-row.selected { border-color: #8390ad; background: #f1f3f8; }
 
 @media (max-width: 760px) {
   .top-nav, .mobile-nav { grid-template-columns: repeat(5,1fr); }
+  .top-nav { height: auto; min-height: 49px; padding-inline: 2px; }
+  .top-nav button { padding-inline: 1px; font-size: 6px; letter-spacing: -.04em; }
+  .top-nav button svg { width: 15px; height: 15px; }
   .translation-panel { margin-bottom: 15px; padding: 17px 14px; }
   .translation-results { grid-template-columns: 1fr; }
   .translation-head em { display: none; }
+  .prep-toolbar { align-items: stretch; flex-direction: column; }
+  .prep-filters { display: grid; grid-template-columns: repeat(3,1fr); }
+  .prep-filters button { padding-inline: 4px; }
+  .prep-complete-button { width: 100%; }
+}
+
+@media (max-width: 390px) {
+  .top-nav button span { font-size: 0; }
+  .top-nav button span::after { font-size: 6px; }
+  .top-nav button:nth-child(1) span::after { content: '일정'; }
+  .top-nav button:nth-child(2) span::after { content: '도시'; }
+  .top-nav button:nth-child(3) span::after { content: '티켓'; }
+  .top-nav button:nth-child(4) span::after { content: '기타'; }
+  .top-nav button:nth-child(5) span::after { content: '설정'; }
 }
 
 /* Compact place cards: text-first layout without the decorative initial panel. */
@@ -347,6 +371,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 @media (max-width: 760px) {
   .places-grid { grid-template-columns: 1fr; }.place-card { min-height: 156px; grid-template-columns: 82px minmax(0,1fr); }.place-letter { font-size: 36px; }.place-body { padding: 10px; }.place-body > p { margin: 5px 0; }
+}
+
+/* Keep all five primary navigation items on one row on phones. */
+@media (max-width: 760px) {
+  .top-nav, .mobile-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .top-nav { height: 49px; overflow: hidden; }
+  .top-nav button { min-width: 0; }
 }
 
 .head-actions { display: flex; align-items: center; gap: 8px; }
