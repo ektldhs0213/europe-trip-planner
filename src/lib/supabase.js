@@ -115,3 +115,28 @@ export async function getTicketUrl(storagePath) {
   if (error) throw error
   return data.signedUrl
 }
+
+export async function translateTravelText(text, targetLanguage) {
+  const client = requireClient()
+  await requireUser()
+  const { data, error } = await client.functions.invoke('translate-travel-text', {
+    body: { text, targetLanguage },
+  })
+  if (error) throw error
+  if (!data?.english || !data?.translated) throw new Error(data?.error || '번역 결과를 불러오지 못했어요.')
+  return data
+}
+
+export async function fetchTranslationUsage() {
+  const client = requireClient()
+  const user = await requireUser()
+  const month = new Date().toISOString().slice(0, 7) + '-01'
+  const { data, error } = await client
+    .from('europe_trip_translation_usage')
+    .select('char_count')
+    .eq('user_id', user.id)
+    .eq('usage_month', month)
+    .maybeSingle()
+  if (error) throw error
+  return Number(data?.char_count || 0)
+}

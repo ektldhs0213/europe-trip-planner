@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadLocalTrip, saveLocalTrip } from './lib/localStore.js'
 import { downloadOfflineTicket, getOfflineTicket, getOfflineTicketIds, openOfflineTicket, saveOfflineTicket } from './lib/offlineTickets.js'
-import { backupTrip, fetchTickets, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, uploadTicket } from './lib/supabase.js'
+import { backupTrip, fetchTickets, fetchTranslationUsage, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, translateTravelText, uploadTicket } from './lib/supabase.js'
 import { usePwa } from './lib/usePwa.js'
 import { BATCH_CITY_SEED, BATCH_PLACE_SEED } from './placeBatch20260816.js'
 
@@ -439,7 +439,7 @@ function App() {
           {view === 'cities' && <Cities cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onNavigate={navigate} notify={notify} />}
           {view === 'city' && <CityDetail cityId={selectedCity} cities={cities} setCities={setCities} places={places} setPlaces={setPlaces} onBack={() => navigate('cities')} notify={notify} />}
           {view === 'bookings' && <Bookings cities={cities} tickets={tickets} setTickets={setTickets} session={session} isOnline={pwa.isOnline} notify={notify} />}
-          {view === 'misc' && <Misc prepItems={prepItems} setPrepItems={setPrepItems} isOnline={pwa.isOnline} notify={notify} />}
+          {view === 'misc' && <Misc prepItems={prepItems} setPrepItems={setPrepItems} session={session} isOnline={pwa.isOnline} notify={notify} />}
           {view === 'settings' && <Settings cities={cities} places={places} events={events} tickets={tickets} prepItems={prepItems} session={session} pwa={pwa} onRestore={restoreLocalData} notify={notify} />}
         </div>
       </main>
@@ -1302,20 +1302,55 @@ const TRANSLATION_LANGUAGES = {
   pt: { label: '포르투갈어', heading: 'PORTUGUÊS', empty: 'Toque no botão para traduzir.' },
   it: { label: '이탈리아어', heading: 'ITALIANO', empty: 'Premi il pulsante per tradurre.' },
   el: { label: '그리스어', heading: 'ΕΛΛΗΝΙΚΑ', empty: 'Πατήστε το κουμπί για μετάφραση.' },
+  fi: { label: '핀란드어', heading: 'SUOMI', empty: 'Paina käännöspainiketta.' },
 }
 
 function TranslationMockup() {
-  const [text, setText] = useState('공항까지 얼마나 걸리나요?')
-  const [translatedText, setTranslatedText] = useState('')
+  const [text, setText] = useState('')
   const [targetLanguage, setTargetLanguage] = useState('es')
-  const result = TRANSLATION_MOCK[translatedText]
+  const [result, setResult] = useState(null)
+  const [usage, setUsage] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [translationSession, setTranslationSession] = useState(null)
   const language = TRANSLATION_LANGUAGES[targetLanguage]
-  const translate = () => setTranslatedText(text.trim())
+
+  useEffect(() => {
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => setTranslationSession(data.session || null))
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setTranslationSession(nextSession))
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (!translationSession?.user?.id || !navigator.onLine) return
+    fetchTranslationUsage().then(setUsage).catch(() => {})
+  }, [translationSession?.user?.id])
+
+  const translate = async () => {
+    const source = text.trim()
+    if (!source || loading) return
+    if (!translationSession?.user?.id) return setError('환경설정에서 먼저 로그인해 주세요.')
+    if (!navigator.onLine) return setError('실시간 번역은 인터넷 연결이 필요해요.')
+    setLoading(true)
+    setError('')
+    try {
+      const data = await translateTravelText(source, targetLanguage)
+      setResult({ en: data.english, [targetLanguage]: data.translated })
+      setUsage(Number(data.usage || 0))
+    } catch (translateError) {
+      setError(translateError.message || '번역 중 오류가 발생했어요.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const copy = async value => {
     if (!value) return
     await navigator.clipboard?.writeText(value)
   }
-  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><strong>번역</strong><label className="translation-language"><span>추가 번역 언어</span><select aria-label="추가 번역 언어" value={targetLanguage} onChange={event => setTargetLanguage(event.target.value)}>{Object.entries(TRANSLATION_LANGUAGES).map(([value, item]) => <option value={value} key={value}>{item.label}</option>)}</select></label></div><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" placeholder="번역할 문장을 입력하세요" /></label><button type="button" className="primary-button translation-submit" disabled={!text.trim()} onClick={translate}><Icon name="sparkle" size={15} /> 번역하기</button><div className="translation-results"><article><div className="translation-result-head"><span>ENGLISH</span><button type="button" disabled={!result?.en} onClick={() => copy(result?.en)}><Icon name="copy" size={13} /> 복사</button></div><strong>{!translatedText ? '번역하기 버튼을 눌러 주세요.' : result?.en || '실시간 번역 API를 연결하면 여기에 표시됩니다.'}</strong></article><article><div className="translation-result-head"><span>{language.heading}</span><button type="button" disabled={!result?.[targetLanguage]} onClick={() => copy(result?.[targetLanguage])}><Icon name="copy" size={13} /> 복사</button></div><strong>{!translatedText ? language.empty : result?.[targetLanguage] || '실시간 번역 API를 연결하면 여기에 표시됩니다.'}</strong></article></div><p className="translation-note">입력 내용은 저장하거나 DB로 전송하지 않습니다. 실제 번역 API는 아직 연결되지 않았습니다.</p></section>
+
+  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><strong>번역</strong><span className="translation-usage">이번 달 {usage.toLocaleString()} / 500,000자</span><label className="translation-language"><span>추가 번역 언어</span><select aria-label="추가 번역 언어" value={targetLanguage} onChange={event => { setTargetLanguage(event.target.value); setResult(null) }}>{Object.entries(TRANSLATION_LANGUAGES).map(([value, item]) => <option value={value} key={value}>{item.label}</option>)}</select></label></div><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" maxLength="5000" placeholder="번역할 문장을 입력하세요" /></label><button type="button" className="primary-button translation-submit" disabled={!text.trim() || loading} onClick={translate}><Icon name="sparkle" size={15} /> {loading ? '번역 중…' : '번역하기'}</button>{error && <p className="translation-error">{error}</p>}<div className="translation-results"><article><div className="translation-result-head"><span>ENGLISH</span><button type="button" disabled={!result?.en} onClick={() => copy(result?.en)}><Icon name="copy" size={13} /> 복사</button></div><strong>{result?.en || '번역하기 버튼을 눌러 주세요.'}</strong></article><article><div className="translation-result-head"><span>{language.heading}</span><button type="button" disabled={!result?.[targetLanguage]} onClick={() => copy(result?.[targetLanguage])}><Icon name="copy" size={13} /> 복사</button></div><strong>{result?.[targetLanguage] || language.empty}</strong></article></div><p className="translation-note">입력한 원문은 저장하지 않으며, 번역 사용 글자 수만 계정에 기록합니다. 실시간 번역은 온라인에서만 사용할 수 있어요.</p></section>
 }
 
 function Misc({ prepItems, setPrepItems, isOnline, notify }) {
