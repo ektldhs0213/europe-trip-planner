@@ -139,13 +139,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .translation-input textarea:focus { border-color: #8390ad; box-shadow: 0 0 0 3px rgba(78,95,137,.09); }
 .translation-results { margin-top: 12px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .translation-results article { min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8f9fc; display: flex; flex-direction: column; align-items: flex-start; }
-.translation-results article > span { color: #687695; font-size: 7px; font-weight: 800; letter-spacing: .1em; }
 .translation-results article > strong { margin: 9px 0; font-size: 11px; line-height: 1.55; }
-.translation-results article > button { margin-top: auto; padding: 0; border: 0; background: transparent; color: #596887; display: inline-flex; align-items: center; gap: 5px; font-size: 8px; font-weight: 700; }
-.translation-results article > button:disabled { opacity: .45; }
-.translation-examples { margin-top: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.translation-examples > span { margin-right: 3px; color: var(--muted); font-size: 7px; font-weight: 700; }
-.translation-examples button { min-height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-size: 7px; cursor: pointer; }
+.translation-result-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.translation-result-head > span { color: #687695; font-size: 7px; font-weight: 800; letter-spacing: .1em; }
+.translation-result-head > button { padding: 0; border: 0; background: transparent; color: #596887; display: inline-flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 700; cursor: pointer; }
+.translation-result-head > button:disabled { opacity: .45; cursor: default; }
 .translation-note { margin: 11px 0 0; color: var(--muted); font-size: 7px; line-height: 1.5; }
 .translation-submit { width: 100%; margin-top: 9px; }
 .prep-toolbar { margin: 14px 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
