@@ -133,13 +133,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .translation-head strong { display: block; font-size: 13px; }
 .translation-head p { margin: 4px 0 0; color: var(--muted); font-size: 8px; line-height: 1.5; }
 .translation-head em { margin-left: auto; padding: 5px 8px; border-radius: 999px; background: #f0f2f7; color: #647292; font-size: 7px; font-style: normal; font-weight: 800; letter-spacing: .08em; }
+.translation-language { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.translation-language > span { color: var(--muted); font-size: 8px; font-weight: 700; }
+.translation-language select { height: 34px; min-width: 138px; padding: 0 28px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font-size: 9px; }
 .translation-input { display: block; margin-top: 17px; }
 .translation-input > span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 8px; font-weight: 700; }
 .translation-input textarea { width: 100%; padding: 13px; resize: vertical; border: 1px solid var(--line); border-radius: 11px; background: #fff; color: var(--ink); font: inherit; font-size: 12px; line-height: 1.6; outline: 0; }
 .translation-input textarea:focus { border-color: #8390ad; box-shadow: 0 0 0 3px rgba(78,95,137,.09); }
 .translation-results { margin-top: 12px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
-.translation-results article { min-height: 108px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8f9fc; display: flex; flex-direction: column; align-items: flex-start; }
-.translation-results article > strong { margin: 9px 0; font-size: 11px; line-height: 1.55; }
+.translation-results article { min-height: 78px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #f8f9fc; display: flex; flex-direction: column; align-items: flex-start; }
+.translation-results article > strong { margin: 6px 0 0; font-size: 10px; line-height: 1.45; }
 .translation-result-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .translation-result-head > span { color: #687695; font-size: 7px; font-weight: 800; letter-spacing: .1em; }
 .translation-result-head > button { padding: 0; border: 0; background: transparent; color: #596887; display: inline-flex; align-items: center; gap: 4px; font-size: 8px; font-weight: 700; cursor: pointer; }
@@ -160,6 +163,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .top-nav button svg { width: 15px; height: 15px; }
   .translation-panel { margin-bottom: 15px; padding: 17px 14px; }
   .translation-results { grid-template-columns: 1fr; }
+  .translation-results article { min-height: 70px; padding: 9px 11px; }
   .translation-head em { display: none; }
   .prep-toolbar { align-items: stretch; flex-direction: column; }
   .prep-filters { display: grid; grid-template-columns: repeat(3,1fr); }

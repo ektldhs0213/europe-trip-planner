@@ -1292,21 +1292,30 @@ function ExchangeRatePanel({ isOnline }) {
 }
 
 const TRANSLATION_MOCK = {
-  '공항까지 얼마나 걸리나요?': { en: 'How long does it take to get to the airport?', es: '¿Cuánto se tarda en llegar al aeropuerto?' },
-  '예약했습니다.': { en: 'I have a reservation.', es: 'Tengo una reserva.' },
-  '계산서 주세요.': { en: 'Could I have the bill, please?', es: 'La cuenta, por favor.' },
+  '공항까지 얼마나 걸리나요?': { en: 'How long does it take to get to the airport?', es: '¿Cuánto se tarda en llegar al aeropuerto?', pt: 'Quanto tempo demora para chegar ao aeroporto?', it: 'Quanto tempo ci vuole per arrivare in aeroporto?', el: 'Πόση ώρα χρειάζεται για να φτάσουμε στο αεροδρόμιο;' },
+  '예약했습니다.': { en: 'I have a reservation.', es: 'Tengo una reserva.', pt: 'Tenho uma reserva.', it: 'Ho una prenotazione.', el: 'Έχω κάνει κράτηση.' },
+  '계산서 주세요.': { en: 'Could I have the bill, please?', es: 'La cuenta, por favor.', pt: 'A conta, por favor.', it: 'Il conto, per favore.', el: 'Τον λογαριασμό, παρακαλώ.' },
+}
+
+const TRANSLATION_LANGUAGES = {
+  es: { label: '스페인어', heading: 'ESPAÑOL', empty: 'Pulsa el botón para traducir.' },
+  pt: { label: '포르투갈어', heading: 'PORTUGUÊS', empty: 'Toque no botão para traduzir.' },
+  it: { label: '이탈리아어', heading: 'ITALIANO', empty: 'Premi il pulsante per tradurre.' },
+  el: { label: '그리스어', heading: 'ΕΛΛΗΝΙΚΑ', empty: 'Πατήστε το κουμπί για μετάφραση.' },
 }
 
 function TranslationMockup() {
   const [text, setText] = useState('공항까지 얼마나 걸리나요?')
   const [translatedText, setTranslatedText] = useState('')
+  const [targetLanguage, setTargetLanguage] = useState('es')
   const result = TRANSLATION_MOCK[translatedText]
+  const language = TRANSLATION_LANGUAGES[targetLanguage]
   const translate = () => setTranslatedText(text.trim())
   const copy = async value => {
     if (!value) return
     await navigator.clipboard?.writeText(value)
   }
-  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><div><strong>간단 번역</strong><p>한국어 문장을 영어와 스페인어로 바로 확인하는 화면 목업입니다.</p></div><em>MOCKUP</em></div><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" placeholder="번역할 문장을 입력하세요" /></label><button type="button" className="primary-button translation-submit" disabled={!text.trim()} onClick={translate}><Icon name="sparkle" size={15} /> 번역하기</button><div className="translation-results"><article><div className="translation-result-head"><span>ENGLISH</span><button type="button" disabled={!result?.en} onClick={() => copy(result?.en)}><Icon name="copy" size={13} /> 복사</button></div><strong>{!translatedText ? '번역하기 버튼을 눌러 주세요.' : result?.en || '실시간 번역 API를 연결하면 여기에 표시됩니다.'}</strong></article><article><div className="translation-result-head"><span>ESPAÑOL</span><button type="button" disabled={!result?.es} onClick={() => copy(result?.es)}><Icon name="copy" size={13} /> 복사</button></div><strong>{!translatedText ? 'Pulsa el botón para traducir.' : result?.es || 'La traducción aparecerá aquí al conectar la API.'}</strong></article></div><p className="translation-note">입력 내용은 저장하거나 DB로 전송하지 않습니다. 실제 번역 API는 아직 연결되지 않았습니다.</p></section>
+  return <section className="translation-panel"><div className="translation-head"><span className="translation-icon"><Icon name="sparkle" size={19} /></span><div><strong>간단 번역</strong><p>영어는 기본으로 표시하고 여행지 언어를 하나 더 선택할 수 있어요.</p></div><em>MOCKUP</em></div><label className="translation-language"><span>추가 번역 언어</span><select value={targetLanguage} onChange={event => setTargetLanguage(event.target.value)}>{Object.entries(TRANSLATION_LANGUAGES).map(([value, item]) => <option value={value} key={value}>{item.label}</option>)}</select></label><label className="translation-input"><span>한국어</span><textarea value={text} onChange={event => setText(event.target.value)} rows="3" placeholder="번역할 문장을 입력하세요" /></label><button type="button" className="primary-button translation-submit" disabled={!text.trim()} onClick={translate}><Icon name="sparkle" size={15} /> 번역하기</button><div className="translation-results"><article><div className="translation-result-head"><span>ENGLISH</span><button type="button" disabled={!result?.en} onClick={() => copy(result?.en)}><Icon name="copy" size={13} /> 복사</button></div><strong>{!translatedText ? '번역하기 버튼을 눌러 주세요.' : result?.en || '실시간 번역 API를 연결하면 여기에 표시됩니다.'}</strong></article><article><div className="translation-result-head"><span>{language.heading}</span><button type="button" disabled={!result?.[targetLanguage]} onClick={() => copy(result?.[targetLanguage])}><Icon name="copy" size={13} /> 복사</button></div><strong>{!translatedText ? language.empty : result?.[targetLanguage] || '실시간 번역 API를 연결하면 여기에 표시됩니다.'}</strong></article></div><p className="translation-note">입력 내용은 저장하거나 DB로 전송하지 않습니다. 실제 번역 API는 아직 연결되지 않았습니다.</p></section>
 }
 
 function Misc({ prepItems, setPrepItems, isOnline, notify }) {
