@@ -44,12 +44,6 @@ Deno.serve(async req => {
     if (!target) throw new Error('지원하지 않는 번역 언어입니다.')
     if (Array.from(source).length > 5000) throw new Error('한 번에 5,000자까지 번역할 수 있습니다.')
 
-    const [english, translated] = await Promise.all([
-      googleTranslate(googleApiKey, source, 'EN'),
-      googleTranslate(googleApiKey, source, target),
-    ])
-    if (!english || !translated) throw new Error('번역 결과가 비어 있습니다.')
-
     const chargedCharacters = Array.from(source).length * 2
     const usageMonth = new Date().toISOString().slice(0, 7) + '-01'
     const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
@@ -58,7 +52,16 @@ Deno.serve(async req => {
       p_usage_month: usageMonth,
       p_char_count: chargedCharacters,
     })
-    if (usageError) throw usageError
+    if (usageError) {
+      if (usageError.message?.includes('MONTHLY_TRANSLATION_LIMIT_EXCEEDED')) throw new Error('이번 달 번역 한도 500,000자를 모두 사용했어요.')
+      throw usageError
+    }
+
+    const [english, translated] = await Promise.all([
+      googleTranslate(googleApiKey, source, 'EN'),
+      googleTranslate(googleApiKey, source, target),
+    ])
+    if (!english || !translated) throw new Error('번역 결과가 비어 있습니다.')
 
     return Response.json({ english, translated, usage: Number(usage || 0) }, { headers: corsHeaders })
   } catch (error) {

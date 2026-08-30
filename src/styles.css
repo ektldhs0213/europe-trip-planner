@@ -598,3 +598,24 @@ body { background: var(--cream); }
   .place-selection-bar > strong { margin-left: 0; }
   .place-selection-bar > button { margin-left: auto; }
 }
+
+/* Safety, synchronization, and workflow improvements. */
+.schedule-toolbar { max-width: 940px; margin: -14px 0 18px; display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 8px; }
+.schedule-toolbar select { height: 42px; padding: 0 34px 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font-size: 9px; }
+.place-toolbar { grid-template-columns: minmax(220px, 1fr) auto auto; }
+.priority-badge { color: #6579a6; font-size: 7px; letter-spacing: 1px; }
+.map-missing { min-height: 27px; padding: 0 7px; display: inline-flex; align-items: center; color: var(--muted); font-size: 7px; }
+.ticket-actions .ticket-delete { width: 28px; padding: 0; color: #a44d49; display: grid; place-items: center; }
+.prep-status-button { min-height: 30px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #56627d; font-size: 7px; cursor: pointer; }
+.city-detail-actions > div { display: flex; align-items: center; gap: 8px; }
+.city-detail-actions > div .secondary-button { min-height: 34px; }
+.check-row.checked .prep-status-button { color: #776b61; }
+.update-banner { position: fixed; z-index: 80; right: 20px; bottom: 20px; min-height: 48px; padding: 8px 9px 8px 15px; border-radius: 13px; background: #303b57; color: #fff; display: flex; align-items: center; gap: 14px; box-shadow: 0 15px 35px rgba(42,51,77,.25); font-size: 9px; font-weight: 700; }
+.update-banner button { min-height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: #fff; color: #303b57; font-size: 8px; font-weight: 800; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .schedule-toolbar, .place-toolbar { grid-template-columns: 1fr; }
+  .schedule-toolbar { margin-top: -8px; }
+  .update-banner { left: 12px; right: 12px; bottom: 12px; justify-content: space-between; }
+  .prep-status-button { justify-self: end; }
+}

@@ -29,18 +29,28 @@ export function usePwa() {
     window.addEventListener('appinstalled', handleInstalled)
 
     let controllerChanged = false
+    let registration = null
+    let updateTimer = null
     const handleControllerChange = () => {
       if (controllerChanged) return
       controllerChanged = true
       window.location.reload()
     }
+    const checkForUpdate = () => registration?.update().catch(() => {})
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkForUpdate()
+    }
 
     if ('serviceWorker' in navigator && import.meta.env.PROD) {
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
-      navigator.serviceWorker.register('/sw.js').then(registration => {
+      navigator.serviceWorker.register('/sw.js').then(nextRegistration => {
+        registration = nextRegistration
         setRegistrationReady(true)
         if (registration.waiting) setUpdateRegistration(registration)
-        registration.update().catch(() => {})
+        checkForUpdate()
+        updateTimer = window.setInterval(checkForUpdate, 5 * 60 * 1000)
+        window.addEventListener('focus', checkForUpdate)
+        document.addEventListener('visibilitychange', handleVisibilityChange)
         registration.addEventListener('updatefound', () => {
           const worker = registration.installing
           worker?.addEventListener('statechange', () => {
@@ -57,6 +67,9 @@ export function usePwa() {
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
       window.removeEventListener('appinstalled', handleInstalled)
+      window.removeEventListener('focus', checkForUpdate)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (updateTimer) window.clearInterval(updateTimer)
       navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange)
     }
   }, [])

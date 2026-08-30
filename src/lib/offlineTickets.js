@@ -59,6 +59,10 @@ export async function getOfflineTicketIds() {
   return keys.map(String)
 }
 
+export async function deleteOfflineTicket(ticketId) {
+  return runTransaction('readwrite', store => store.delete(String(ticketId)))
+}
+
 export function openOfflineTicket(record) {
   const fileUrl = URL.createObjectURL(record.blob)
   window.open(fileUrl, '_blank', 'noopener,noreferrer')

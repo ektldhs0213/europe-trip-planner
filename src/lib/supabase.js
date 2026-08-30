@@ -108,6 +108,22 @@ export async function fetchTickets() {
   return data || []
 }
 
+export async function deleteTicket(ticket) {
+  const client = requireClient()
+  const user = await requireUser()
+  const { error } = await client
+    .from(TICKET_TABLE)
+    .delete()
+    .eq('id', ticket.id)
+    .eq('user_id', user.id)
+  if (error) throw error
+
+  if (ticket.storage_path?.startsWith(`${user.id}/`)) {
+    const { error: storageError } = await client.storage.from(TICKET_BUCKET).remove([ticket.storage_path])
+    if (storageError) throw storageError
+  }
+}
+
 export async function getTicketUrl(storagePath) {
   const client = requireClient()
   await requireUser()

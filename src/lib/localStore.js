@@ -10,12 +10,16 @@ export function loadLocalTrip() {
 }
 
 export function saveLocalTrip(payload) {
-  const savedAt = new Date().toISOString()
-  window.localStorage.setItem(LOCAL_TRIP_KEY, JSON.stringify({
-    ...payload,
-    savedAt,
-  }))
-  return savedAt
+  try {
+    const savedAt = new Date().toISOString()
+    window.localStorage.setItem(LOCAL_TRIP_KEY, JSON.stringify({
+      ...payload,
+      savedAt,
+    }))
+    return savedAt
+  } catch {
+    return null
+  }
 }
 
 export function getLocalSavedAt() {
