@@ -1,4 +1,4 @@
-const CACHE_NAME = 'europe-trip-pwa-v1'
+const CACHE_NAME = 'europe-trip-pwa-v2'
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -34,7 +34,12 @@ async function cacheAppShell() {
     .filter(url => url.origin === self.location.origin && url.pathname.startsWith('/assets/'))
     .map(url => url.pathname)
 
-  await Promise.allSettled([...new Set(assetUrls)].map(url => cacheResponse(cache, url)))
+  const currentAssets = new Set(assetUrls)
+  await Promise.allSettled([...currentAssets].map(url => cacheResponse(cache, url)))
+  const cachedRequests = await cache.keys()
+  await Promise.all(cachedRequests
+    .filter(request => new URL(request.url).pathname.startsWith('/assets/') && !currentAssets.has(new URL(request.url).pathname))
+    .map(request => cache.delete(request)))
 }
 
 self.addEventListener('install', event => {
