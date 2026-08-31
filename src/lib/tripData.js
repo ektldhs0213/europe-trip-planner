@@ -77,6 +77,7 @@ export function mergeTripPayloads(localPayload, remotePayload, options = {}) {
     deletedRecords,
     scheduleDataVersion: Math.max(Number(local.scheduleDataVersion || 0), Number(remote.scheduleDataVersion || 0)),
     placeDataVersion: Math.max(Number(local.placeDataVersion || 0), Number(remote.placeDataVersion || 0)),
+    prepDataVersion: Math.max(Number(local.prepDataVersion || 0), Number(remote.prepDataVersion || 0)),
   }
 
   for (const collection of TRIP_COLLECTIONS) {

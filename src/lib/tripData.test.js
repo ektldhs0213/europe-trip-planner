@@ -48,3 +48,11 @@ test('upgrades legacy records with a stable timestamp', () => {
   const records = ensureRecordTimestamps([{ id: 'legacy' }], '2026-08-30T10:00:00Z')
   assert.equal(records[0]._updatedAt, '2026-08-30T10:00:00Z')
 })
+
+test('keeps the newest preparation data version while merging devices', () => {
+  const merged = mergeTripPayloads(
+    { prepDataVersion: 2, prepItems: [] },
+    { prepDataVersion: 1, prepItems: [] },
+  )
+  assert.equal(merged.prepDataVersion, 2)
+})

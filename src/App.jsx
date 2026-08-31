@@ -4,6 +4,7 @@ import { deleteOfflineTicket, downloadOfflineTicket, getOfflineTicket, getOfflin
 import { backupTrip, deleteTicket, fetchTickets, fetchTranslationUsage, getTicketUrl, isSupabaseConfigured, restoreTrip, sendMagicLink, signOutLocal, supabase, translateTravelText, uploadTicket } from './lib/supabase.js'
 import { usePwa } from './lib/usePwa.js'
 import { addDeletion, ensureRecordTimestamps, isSafeHttpUrl, mergeTripPayloads, normalizeDeletions, touchRecord } from './lib/tripData.js'
+import { PREP_CATEGORIES, PREP_DATA_VERSION, normalizePrepItems } from './lib/prepItems.js'
 import { BATCH_CITY_SEED, BATCH_PLACE_SEED } from './placeBatch20260816.js'
 
 const iconPaths = {
@@ -310,33 +311,6 @@ const COUNTRY_OPTIONS = [
   { name: 'Vatican City', ko: '바티칸', flag: '🇻🇦' },
 ]
 
-const DEFAULT_PREP_ITEMS = [
-  { id: 'prep-passport', text: '여권 유효기간 확인', completed: true },
-  { id: 'prep-insurance', text: '여행자 보험 가입', completed: true },
-  { id: 'prep-esim', text: '유심 · eSIM 준비', completed: false },
-  { id: 'prep-winter', text: '핀란드 방한용품 챙기기', completed: false },
-  { id: 'prep-map', text: '오프라인 지도 다운로드', completed: false },
-]
-
-function normalizePrepItems(payload) {
-  if (Array.isArray(payload?.prepItems)) {
-    return payload.prepItems
-      .filter(item => item && String(item.text || '').trim())
-      .map((item, index) => ({
-        id: String(item.id || `prep-restored-${index}`),
-        text: String(item.text).trim(),
-        completed: Boolean(item.completed),
-        ...(item._updatedAt ? { _updatedAt: item._updatedAt } : {}),
-      }))
-  }
-
-  if (Array.isArray(payload?.checks)) {
-    return DEFAULT_PREP_ITEMS.map((item, index) => ({ ...item, completed: Boolean(payload.checks[index]) }))
-  }
-
-  return DEFAULT_PREP_ITEMS.map(item => ({ ...item }))
-}
-
 function App() {
   const pwa = usePwa()
   const cachedTrip = useMemo(() => loadLocalTrip(), [])
@@ -368,6 +342,7 @@ function App() {
     lastCloudSyncAt,
     scheduleDataVersion: SCHEDULE_DATA_VERSION,
     placeDataVersion: PLACE_DATA_VERSION,
+    prepDataVersion: PREP_DATA_VERSION,
   }
 
   const markDeleted = (collection, id) => setDeletedRecords(current => addDeletion(current, collection, id))
@@ -1448,19 +1423,26 @@ function TranslationMockup({ notify = () => {} } = {}) {
 
 function Misc({ prepItems, setPrepItems, markDeleted, isOnline, notify }) {
   const [newItem, setNewItem] = useState('')
+  const [newCategory, setNewCategory] = useState('기타')
   const [prepFilter, setPrepFilter] = useState('all')
-  const [selectedPrepIds, setSelectedPrepIds] = useState([])
+  const [prepQuery, setPrepQuery] = useState('')
+  const [openPrepGroups, setOpenPrepGroups] = useState(() => new Set(PREP_CATEGORIES.map(category => `needed:${category.id}`)))
   const completedCount = prepItems.filter(item => item.completed).length
+  const neededCount = prepItems.length - completedCount
   const progress = prepItems.length ? completedCount / prepItems.length * 100 : 0
-  const visiblePrepItems = prepItems.filter(item => prepFilter === 'all' || (prepFilter === 'needed' ? !item.completed : item.completed))
-
-  useEffect(() => {
-    const visibleIds = new Set(visiblePrepItems.map(item => item.id))
-    setSelectedPrepIds(current => {
-      const next = current.filter(id => visibleIds.has(id))
-      return next.length === current.length ? current : next
+  const visiblePrepItems = useMemo(() => {
+    const query = prepQuery.trim().toLowerCase()
+    return prepItems.filter(item => {
+      const statusMatches = prepFilter === 'all' || (prepFilter === 'needed' ? !item.completed : item.completed)
+      const searchMatches = !query || `${item.category} ${item.group} ${item.text} ${item.note}`.toLowerCase().includes(query)
+      return statusMatches && searchMatches
     })
-  }, [prepFilter, prepItems])
+  }, [prepItems, prepFilter, prepQuery])
+
+  const statusSections = useMemo(() => [
+    { id: 'needed', title: '준비 예정 · 필요', description: '아직 챙기거나 확인할 항목', items: visiblePrepItems.filter(item => !item.completed) },
+    { id: 'completed', title: '준비 완료', description: '이미 준비했거나 결정을 마친 항목', items: visiblePrepItems.filter(item => item.completed) },
+  ].filter(section => prepFilter === 'all' || section.id === prepFilter), [visiblePrepItems, prepFilter])
 
   const addItem = event => {
     event.preventDefault()
@@ -1471,20 +1453,9 @@ function Misc({ prepItems, setPrepItems, markDeleted, isOnline, notify }) {
       return
     }
     const id = window.crypto?.randomUUID?.() || `prep-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    setPrepItems(current => [...current, touchRecord({ id, text, completed: false })])
+    setPrepItems(current => [...current, touchRecord({ id, text, category: newCategory, group: '', note: '', completed: false })])
     setNewItem('')
     notify('여행 준비 항목을 추가했어요.')
-  }
-
-  const toggleSelection = id => {
-    setSelectedPrepIds(current => current.includes(id) ? current.filter(currentId => currentId !== id) : [...current, id])
-  }
-
-  const completeSelected = () => {
-    if (!selectedPrepIds.length) return
-    setPrepItems(current => current.map(item => selectedPrepIds.includes(item.id) ? touchRecord({ ...item, completed: true }) : item))
-    setSelectedPrepIds([])
-    notify('선택한 준비물을 준비 완료로 변경했어요.')
   }
 
   const toggleCompleted = item => {
@@ -1495,17 +1466,77 @@ function Misc({ prepItems, setPrepItems, markDeleted, isOnline, notify }) {
   }
 
   const deleteItem = item => {
+    if (!window.confirm(`“${item.text}” 준비 항목을 삭제할까요?`)) return
     setPrepItems(current => current.filter(currentItem => currentItem.id !== item.id))
-    setSelectedPrepIds(current => current.filter(id => id !== item.id))
     markDeleted('prepItems', item.id)
     notify('여행 준비 항목을 삭제했어요.')
   }
 
-  return <div className="page"><SectionHead eyebrow="TRAVEL TOOLS" title="기타" description="환율과 간단 번역을 확인하고 여행 준비물을 관리하세요." /><div className="misc-grid"><ExchangeRatePanel isOnline={isOnline} /><TranslationMockup notify={notify} /><section className="checklist-panel"><div className="check-progress"><div><strong>{completedCount}/{prepItems.length}</strong><span>완료</span></div><div><i style={{width: `${progress}%`}} /></div></div><form className="check-add-form" onSubmit={addItem}><input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 하나씩 입력하세요" aria-label="여행 준비 항목" /><button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button></form><div className="prep-toolbar"><div className="prep-filters" aria-label="준비물 상태 필터">{[['all','전체'],['needed','준비 필요'],['completed','준비 완료']].map(([value,label]) => <button type="button" key={value} className={prepFilter === value ? 'active' : ''} onClick={() => setPrepFilter(value)}>{label}</button>)}</div><button type="button" className="primary-button prep-complete-button" disabled={!selectedPrepIds.length} onClick={completeSelected}><Icon name="check" size={15} /> 선택 항목 준비 완료{selectedPrepIds.length ? ` (${selectedPrepIds.length})` : ''}</button></div>{visiblePrepItems.length ? visiblePrepItems.map(item => <div className={`check-row ${item.completed ? 'checked' : ''} ${selectedPrepIds.includes(item.id) ? 'selected' : ''}`} key={item.id}><label className="check-main"><input type="checkbox" checked={selectedPrepIds.includes(item.id)} onChange={() => toggleSelection(item.id)} /><span><Icon name="check" size={15}/></span><strong>{item.text}</strong></label><button type="button" className="prep-status-button" onClick={() => toggleCompleted(item)}>{item.completed ? '준비 완료 · 되돌리기' : '준비 필요 · 완료하기'}</button><button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button></div>) : <div className="check-empty">이 상태의 준비 항목이 없어요.</div>}</section></div></div>
+  const toggleGroup = key => setOpenPrepGroups(current => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
+
+  const renderItem = item => (
+    <div className={`check-row ${item.completed ? 'checked' : ''}`} key={item.id}>
+      <label className="check-main">
+        <input type="checkbox" checked={item.completed} onChange={() => toggleCompleted(item)} />
+        <span><Icon name="check" size={15}/></span>
+        <div className="prep-item-copy"><strong>{item.text}</strong>{(item.group || item.note) && <small>{[item.group, item.note].filter(Boolean).join(' · ')}</small>}</div>
+      </label>
+      <button type="button" className="check-delete" onClick={() => deleteItem(item)} aria-label={`${item.text} 삭제`}><Icon name="trash" size={15} /></button>
+    </div>
+  )
+
+  return (
+    <div className="page">
+      <SectionHead eyebrow="TRAVEL TOOLS" title="기타" description="환율과 간단 번역을 확인하고 여행 준비물을 관리하세요." />
+      <div className="misc-grid">
+        <ExchangeRatePanel isOnline={isOnline} />
+        <TranslationMockup notify={notify} />
+        <section className="checklist-panel">
+          <header className="prep-heading"><div><span className="eyebrow">PACKING MOCKUP</span><h2>여행 준비물</h2><p>받은 목록을 준비 완료와 준비 예정·필요로 나눈 첫 번째 목업입니다.</p></div><span className="prep-mockup-badge">목업 · {prepItems.length}개</span></header>
+          <div className="prep-overview">
+            <div className="needed"><span>준비 예정 · 필요</span><strong>{neededCount}</strong><small>챙기거나 확인할 항목</small></div>
+            <div className="completed"><span>준비 완료</span><strong>{completedCount}</strong><small>준비 또는 결정 완료</small></div>
+            <div className="progress"><span>전체 준비율</span><strong>{Math.round(progress)}%</strong><div><i style={{ width: `${progress}%` }} /></div></div>
+          </div>
+          <form className="check-add-form" onSubmit={addItem}>
+            <select value={newCategory} onChange={event => setNewCategory(event.target.value)} aria-label="새 준비물 분류">{PREP_CATEGORIES.map(category => <option value={category.id} key={category.id}>{category.icon} {category.id}</option>)}</select>
+            <input value={newItem} onChange={event => setNewItem(event.target.value)} placeholder="준비할 항목을 입력하세요" aria-label="여행 준비 항목" />
+            <button className="primary-button" disabled={!newItem.trim()}><Icon name="plus" size={16} /> 추가</button>
+          </form>
+          <div className="prep-toolbar">
+            <label className="prep-search"><Icon name="search" size={16}/><input value={prepQuery} onChange={event => setPrepQuery(event.target.value)} placeholder="준비물 검색" /></label>
+            <div className="prep-filters" aria-label="준비물 상태 필터">{[['all','전체'],['needed','준비 예정 · 필요'],['completed','준비 완료']].map(([value,label]) => <button type="button" key={value} className={prepFilter === value ? 'active' : ''} onClick={() => setPrepFilter(value)}>{label}</button>)}</div>
+          </div>
+          <div className="prep-status-board">
+            {statusSections.map(section => (
+              <section className={`prep-status-section ${section.id}`} key={section.id}>
+                <header><div><span>{section.id === 'needed' ? 'TO PACK' : 'READY'}</span><h3>{section.title}</h3><p>{section.description}</p></div><strong>{section.items.length}개</strong></header>
+                <div className="prep-category-list">
+                  {PREP_CATEGORIES.map(category => {
+                    const items = section.items.filter(item => item.category === category.id)
+                    if (!items.length) return null
+                    const key = `${section.id}:${category.id}`
+                    const isOpen = openPrepGroups.has(key)
+                    return <div className={`prep-category-group ${isOpen ? 'open' : ''}`} key={key}><button type="button" className="prep-category-toggle" onClick={() => toggleGroup(key)} aria-expanded={isOpen}><span><b>{category.icon}</b><strong>{category.id}</strong></span><span>{items.length}개 <Icon name="chevron" size={14}/></span></button>{isOpen && <div className="prep-category-items">{items.map(renderItem)}</div>}</div>
+                  })}
+                  {!section.items.length && <div className="check-empty">이 상태의 준비 항목이 없어요.</div>}
+                </div>
+              </section>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
 }
 
 function Settings({ cities, places, events, tickets, prepItems, deletedRecords, lastCloudSyncAt, session, pwa, onRestore, notify }) {
-  const payload = { cities, places, events, tickets, prepItems, deletedRecords, lastCloudSyncAt, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION }
+  const payload = { cities, places, events, tickets, prepItems, deletedRecords, lastCloudSyncAt, scheduleDataVersion: SCHEDULE_DATA_VERSION, placeDataVersion: PLACE_DATA_VERSION, prepDataVersion: PREP_DATA_VERSION }
   return <div className="page"><SectionHead eyebrow="APP SETTINGS" title="환경설정" description="앱 설치와 기기 간 데이터 백업을 관리하세요." /><div className="settings-grid"><PwaPanel pwa={pwa} notify={notify} /><CloudBackupPanel session={session} isOnline={pwa.isOnline} payload={payload} onRestore={onRestore} notify={notify} /></div></div>
 }
 
